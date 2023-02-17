@@ -20,6 +20,15 @@ library(optimx)
 library(ggplot2)
 
 ###functions
+#calculate log odds from accuracy
+toLogOdds=function(acc){
+  return(log(acc/(1-acc)))
+}
+
+#calculate acurracy from log odds
+toAcc=function(logOdds){
+  return(exp(logOdds)/(1+exp(logOdds)))
+}
 
 #generate dataset
 #n - number of participants
@@ -248,7 +257,13 @@ for(effect in unique(dataOfSims$effects)){
   }
 }
 
-
+#plot methods by intercept
+ggplot(dataOfSims,aes(x=toAcc(intercept),y=pValue,color=type,shape=as.factor(numberOfTrials))) +
+  stat_summary(na.rm=TRUE, fun=mean, geom="line") +
+  stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
+  stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
+  labs(y="p value", x="intercept") +
+  theme_classic()
 
 #plot by n
 ggplot(significantDataFrame,aes(x=n,y=propSignificant,color=effects)) +
