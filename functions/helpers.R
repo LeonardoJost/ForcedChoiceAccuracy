@@ -1,5 +1,5 @@
 ### Supporting functions, which fit no category
-#     Copyright (C) 2021  Leonardo Jost
+#     Copyright (C) 2023  Leonardo Jost
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -178,4 +178,15 @@ toLogOdds=function(acc){
 toAcc=function(logOdds){
   return(exp(logOdds)/(1+exp(logOdds)))
 }
+
+#correct accuracy for chance level
+correctChanceLevel=function(acc,chanceLevel){
+  return((acc-chanceLevel)/(1-chanceLevel))
+}
+
+#add chance level to acc as skill level
+addChanceLevel=function(acc,chanceLevel){
+  return(acc*(1-chanceLevel)+chanceLevel)
+}
+
 
