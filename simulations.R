@@ -63,7 +63,6 @@ generateData=function(n,numberOfTrials,intercept=0,betweenEffectSize=1,withinEff
   return(testdata)
 }
 
-
 #get p values and effect sizes of fixed effects
 getDataGlmer=function(testdata){
   #catch errors if all values 0 or 1 for high and low probabilities
@@ -81,7 +80,7 @@ getDataGlmer=function(testdata){
                anova(glmerModel,glmerModel2)$"Pr(>Chisq)"[2],
                anova(glmerModel,glmerModel3)$"Pr(>Chisq)"[2],
                fixef(glmerModel),
-               isSingular((glmerModel))))
+               isSingular(glmerModel)))
     },
     error=function(cond) {
       message("Error with glmerModel:")
@@ -107,7 +106,7 @@ getDataGlmerGuessing=function(testdata){
                anova(glmerModel,glmerModel2)$"Pr(>Chisq)"[2],
                anova(glmerModel,glmerModel3)$"Pr(>Chisq)"[2],
                fixef(glmerModel),
-               isSingular((glmerModel))))
+               isSingular(glmerModel)))
     },
     error=function(cond) {
       message("Error with glmerModel with adjustment:")
@@ -132,7 +131,7 @@ getDataLmer=function(testdata){
                anova(lmerModel,lmerModel2)$"Pr(>Chisq)"[2],
                anova(lmerModel,lmerModel3)$"Pr(>Chisq)"[2],
                fixef(lmerModel),
-               isSingular((lmerModel))))
+               isSingular(lmerModel)))
     },
     error=function(cond) {
       message("Error with lmerModel:")
@@ -151,15 +150,15 @@ getDataLmer=function(testdata){
 randSim=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=0){
   numTrials=length(numberOfTrialsVector)
   #generate data frame for saving data
-  dataOfSims=data.frame(rep=rep(1:reps,length(ns)*numTrials,each=9), #3(effects)*3(type) values saved per repetition,
-                        intercept=rep(intercepts,each=9*reps,length(ns)*length(numberOfTrialsVector)),
-                        numberOfTrials=rep(numberOfTrialsVector,each=9*reps*length(intercepts),length(ns)),
-                        n=rep(ns,each=9*reps*numTrials*length(intercepts)),
-                        effects=rep(c("factor1","factor2","factor1:factor2"),length(ns)*numTrials*length(intercepts)*3*reps),
-                        type=rep(c("normal","binomial","binomialGuessing"),length(ns)*numTrials*length(intercepts)*reps,each=3),
-                        pValue=rep(0,length(ns)*9*numTrials*length(intercepts)*reps),
-                        effectSize=rep(0,length(ns)*9*numTrials*length(intercepts)*reps),
-                        singularFit=rep(F,length(ns)*9*numTrials*length(intercepts)*reps))
+  dataOfSims=data.frame(rep=rep(1:reps,length(Ns)*numTrials,each=9), #3(effects)*3(type) values saved per repetition,
+                        intercept=rep(intercepts,each=9*reps,length(Ns)*length(numberOfTrialsVector)),
+                        numberOfTrials=rep(numberOfTrialsVector,each=9*reps*length(intercepts),length(Ns)),
+                        N=rep(Ns,each=9*reps*numTrials*length(intercepts)),
+                        effects=rep(c("factor1","factor2","factor1:factor2"),length(Ns)*numTrials*length(intercepts)*3*reps),
+                        type=rep(c("normal","binomial","binomialGuessing"),length(Ns)*numTrials*length(intercepts)*reps,each=3),
+                        pValue=rep(0,length(Ns)*9*numTrials*length(intercepts)*reps),
+                        effectSize=rep(0,length(Ns)*9*numTrials*length(intercepts)*reps),
+                        singularFit=rep(F,length(Ns)*9*numTrials*length(intercepts)*reps))
   #loop over combinations of number of Trials and participants and intercepts
   for(intercept in intercepts){
     #output to get some sense of progress
@@ -180,49 +179,49 @@ randSim=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,between
           lmerData=getDataLmer(testdata)
           #save to data frame
           #lmerData
-          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor1")]=
+          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
             lmerData[1]
-          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor2")]=
+          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor2")]=
             lmerData[2]
-          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor1:factor2")]=
+          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
             lmerData[3]
-          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor1")]=
+          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
             lmerData[5]      
-          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor2")]=
+          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor2")]=
             lmerData[6]      
-          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor1:factor2")]=
+          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
             lmerData[7]
-          dataOfSims$singularFit[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n)]=
+          dataOfSims$singularFit[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N)]=
             lmerData[8]
           #glmerData
-          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="binomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor1")]=
+          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="binomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
             glmerData[1]
-          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="binomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor2")]=
+          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="binomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor2")]=
             glmerData[2]
-          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="binomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor1:factor2")]=
+          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="binomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
             glmerData[3]
-          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="binomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor1")]=
+          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="binomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
             glmerData[5]     
-          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="binomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor2")]=
+          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="binomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor2")]=
             glmerData[6]      
-          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="binomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor1:factor2")]=
+          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="binomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
             glmerData[7]
-          dataOfSims$singularFit[which(dataOfSims$rep==i & dataOfSims$type=="binomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n)]=
+          dataOfSims$singularFit[which(dataOfSims$rep==i & dataOfSims$type=="binomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N)]=
             glmerData[8]
           #glmerDataGuessing
-          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="binomialGuessing" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor1")]=
+          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="binomialGuessing" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
             glmerDataGuessing[1]
-          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="binomialGuessing" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor2")]=
+          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="binomialGuessing" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor2")]=
             glmerDataGuessing[2]
-          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="binomialGuessing" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor1:factor2")]=
+          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="binomialGuessing" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
             glmerDataGuessing[3]
-          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="binomialGuessing" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor1")]=
+          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="binomialGuessing" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
             glmerDataGuessing[5]     
-          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="binomialGuessing" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor2")]=
+          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="binomialGuessing" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor2")]=
             glmerDataGuessing[6]      
-          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="binomialGuessing" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n & dataOfSims$effects=="factor1:factor2")]=
+          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="binomialGuessing" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
             glmerDataGuessing[7]
-          dataOfSims$singularFit[which(dataOfSims$rep==i & dataOfSims$type=="binomialGuessing" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$n==n)]=
+          dataOfSims$singularFit[which(dataOfSims$rep==i & dataOfSims$type=="binomialGuessing" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N)]=
             glmerDataGuessing[8]
         }      
       }
@@ -232,14 +231,26 @@ randSim=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,between
 }
 
 ###script
-#test
+# #test
 # N=50
 # numberOfTrials=20
-# intercept=toLogOdds(0.9)
-# testdata=generateData(N,numberOfTrials,intercept)
+# intercept=toLogOdds(0.01)
+# betweenEffectSize=1
+# withinEffectSize=1
+# interactionEffectSize=1
+# randomIntercept=1
+# randomError=0
+# testdata=generateData(N,numberOfTrials,intercept,betweenEffectSize,withinEffectSize,interactionEffectSize,randomIntercept,randomError)
 # glmerData=getDataGlmer(testdata)
 # glmerDataGuessing=getDataGlmerGuessing(testdata)
 # lmerData=getDataLmer(testdata)
+# 
+# Ns=c(1200)
+# numberOfTrialsVector=c(20)
+# intercepts=toLogOdds(0.9)
+# reps=10
+# dataOfSims11110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=0)
+
 #generate random seed (this should be random enough)
 #sample(0:100000,1)
 #52766
@@ -248,7 +259,7 @@ set.seed(52766)
 Ns=c(1200)
 numberOfTrialsVector=c(10,20,40)
 intercepts=toLogOdds(c(0.01,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.80,0.85,0.90,0.95,0.99))
-reps=10
+reps=100
 dataOfSims11110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=0)
 #larger random intercept
 dataOfSims11120=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=2,randomError=0)
