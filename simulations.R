@@ -185,12 +185,13 @@ randSim=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,between
             lmerData[2]
           dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
             lmerData[3]
+          #calculate log odds effect size for normal distribution
           dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
-            lmerData[5]      
+            toLogOdds(lmerData[4]+lmerData[5])-toLogOdds(lmerData[4])    
           dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor2")]=
-            lmerData[6]      
+            toLogOdds(lmerData[4]+lmerData[6])-toLogOdds(lmerData[4])       
           dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
-            lmerData[7]
+            toLogOdds(lmerData[4]+lmerData[7])-toLogOdds(lmerData[4]) 
           dataOfSims$singularFit[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N)]=
             lmerData[8]
           #glmerData
@@ -230,6 +231,134 @@ randSim=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,between
   return(dataOfSims)
 }
 
+#accumulate random datasets to show effects of distribution
+#Ns - vector of total number of measurements (number of participants * numbers of trials * levels of within factor)
+#numberOfTrialsVector - vector of numbers of trials 
+#reps - number of simulations
+randDatasets=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=0){
+  numTrials=length(numberOfTrialsVector)
+  #generate data frame for saving data
+  dataOfSims=data.frame(rep=rep(1:reps,length(Ns)*numTrials,each=4), #4(effects) values saved per repetition,
+                        intercept=rep(intercepts,each=4*reps,length(Ns)*length(numberOfTrialsVector)),
+                        numberOfTrials=rep(numberOfTrialsVector,each=4*reps*length(intercepts),length(Ns)),
+                        N=rep(Ns,each=4*reps*numTrials*length(intercepts)),
+                        effects=rep(c("none","factor1","factor2","factor1:factor2"),length(Ns)*numTrials*length(intercepts)*reps),
+                        logOdds=rep(0,length(Ns)*4*numTrials*length(intercepts)*reps),
+                        prob=rep(0,length(Ns)*4*numTrials*length(intercepts)*reps),
+                        correctResponses=rep(0,length(Ns)*4*numTrials*length(intercepts)*reps),
+                        correctResponsesGuessing=rep(F,length(Ns)*4*numTrials*length(intercepts)*reps))
+  #loop over combinations of number of Trials and participants and intercepts
+  for(intercept in intercepts){
+    #output to get some sense of progress
+    print(paste("intercept:",intercept))
+    for(numberOfTrials in numberOfTrialsVector){
+      print(paste("numberOfTrials:",numberOfTrials))
+      for(N in Ns) {
+        #output to get some sense of progress
+        print(paste("N:",N))
+        #calculate number of participants
+        n=N/numberOfTrials/2
+        print(paste("n:",n))
+        #repeat simulations and save data
+        for(i in 1:reps){
+          testdata=generateData(n,numberOfTrials,intercept,betweenEffectSize,withinEffectSize,interactionEffectSize,randomIntercept,randomError)
+          #save to data frame
+          #log odds
+          dataOfSims$logOdds[which(dataOfSims$rep==i & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="none")]=
+            mean(testdata$logOdds[which(testdata$factor1==-0.5 & testdata$factor2==-0.5)])
+          dataOfSims$logOdds[which(dataOfSims$rep==i & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
+            mean(testdata$logOdds[which(testdata$factor1==0.5 & testdata$factor2==-0.5)])
+          dataOfSims$logOdds[which(dataOfSims$rep==i & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor2")]=
+            mean(testdata$logOdds[which(testdata$factor1==-0.5 & testdata$factor2==0.5)])
+          dataOfSims$logOdds[which(dataOfSims$rep==i & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
+            mean(testdata$logOdds[which(testdata$factor1==0.5 & testdata$factor2==0.5)])
+          #prob
+          dataOfSims$prob[which(dataOfSims$rep==i & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="none")]=
+            mean(testdata$prob[which(testdata$factor1==-0.5 & testdata$factor2==-0.5)])
+          dataOfSims$prob[which(dataOfSims$rep==i & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
+            mean(testdata$prob[which(testdata$factor1==0.5 & testdata$factor2==-0.5)])
+          dataOfSims$prob[which(dataOfSims$rep==i & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor2")]=
+            mean(testdata$prob[which(testdata$factor1==-0.5 & testdata$factor2==0.5)])
+          dataOfSims$prob[which(dataOfSims$rep==i & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
+            mean(testdata$prob[which(testdata$factor1==0.5 & testdata$factor2==0.5)])
+          #correctResponses
+          dataOfSims$correctResponses[which(dataOfSims$rep==i & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="none")]=
+            mean(testdata$correctResponses[which(testdata$factor1==-0.5 & testdata$factor2==-0.5)])
+          dataOfSims$correctResponses[which(dataOfSims$rep==i & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
+            mean(testdata$correctResponses[which(testdata$factor1==0.5 & testdata$factor2==-0.5)])
+          dataOfSims$correctResponses[which(dataOfSims$rep==i & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor2")]=
+            mean(testdata$correctResponses[which(testdata$factor1==-0.5 & testdata$factor2==0.5)])
+          dataOfSims$correctResponses[which(dataOfSims$rep==i & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
+            mean(testdata$correctResponses[which(testdata$factor1==0.5 & testdata$factor2==0.5)])
+          #correctResponsesGuessing
+          dataOfSims$correctResponsesGuessing[which(dataOfSims$rep==i & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="none")]=
+            mean(testdata$correctResponsesGuessing[which(testdata$factor1==-0.5 & testdata$factor2==-0.5)])
+          dataOfSims$correctResponsesGuessing[which(dataOfSims$rep==i & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
+            mean(testdata$correctResponsesGuessing[which(testdata$factor1==0.5 & testdata$factor2==-0.5)])
+          dataOfSims$correctResponsesGuessing[which(dataOfSims$rep==i & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor2")]=
+            mean(testdata$correctResponsesGuessing[which(testdata$factor1==-0.5 & testdata$factor2==0.5)])
+          dataOfSims$correctResponsesGuessing[which(dataOfSims$rep==i & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
+            mean(testdata$correctResponsesGuessing[which(testdata$factor1==0.5 & testdata$factor2==0.5)])
+        }      
+      }
+    }
+  }
+  return(dataOfSims)
+}
+
+
+#function to generate plots
+saveplots=function(dataOfSims,name){
+  #remove singular fits
+  dataOfSimsNoSingularFits=dataOfSims[which(dataOfSims$singularFit==0),]
+  #plot p-value separated by methods by intercept
+  ggplot(dataOfSimsNoSingularFits,aes(x=toAcc(intercept),y=pValue,color=type,shape=as.factor(numberOfTrials))) +
+    stat_summary(na.rm=TRUE, fun=mean, geom="line") +
+    stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
+    stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
+    facet_wrap(~effects) +
+    labs(y="p value", x="intercept") +
+    theme_classic()
+  ggsave(paste("figs/",name,"pValue.png",sep=''))
+  #plot effect size separated by  methods by intercept
+  ggplot(dataOfSimsNoSingularFits,aes(x=toAcc(intercept),y=effectSize,color=type,shape=as.factor(numberOfTrials))) +
+    stat_summary(na.rm=TRUE, fun=mean, geom="line") +
+    stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
+    stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
+    facet_wrap(~effects) +
+    labs(y="effect size", x="intercept") +
+    theme_classic()
+  ggsave(paste("figs/",name,"effectSize.png",sep=''))
+  #power
+  library(plyr)
+  dataOfSimsSummarizedReps=ddply(dataOfSims,
+                                 .(intercept,type,numberOfTrials,effects,N),
+                                 summarize,
+                                 reps=sum(singularFit==0),
+                                 singularFits=sum(singularFit==1),
+                                 powerPositive=sum(pValue<.05 & effectSize>0 & !is.na(effectSize) & singularFit==0)/reps,
+                                 powerNegative=sum(pValue<.05 & effectSize<0 & !is.na(effectSize) & singularFit==0)/reps,
+                                 nsEffect=sum(pValue>=.05 & singularFit==0)/reps)
+  #power to detect effect in positive direction
+  ggplot(dataOfSimsSummarizedReps,aes(x=toAcc(intercept),y=powerPositive,color=type,shape=as.factor(numberOfTrials))) +
+    stat_summary(na.rm=TRUE, fun=mean, geom="line") +
+    stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
+    stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
+    facet_wrap(~effects) +
+    labs(y="power", x="intercept") +
+    theme_classic()
+  ggsave(paste("figs/",name,"powerPositive.png",sep=''))
+  #power to detect effect in negative direction
+  ggplot(dataOfSimsSummarizedReps,aes(x=toAcc(intercept),y=powerNegative,color=type,shape=as.factor(numberOfTrials))) +
+    stat_summary(na.rm=TRUE, fun=mean, geom="line") +
+    stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
+    stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
+    facet_wrap(~effects) +
+    labs(y="power", x="intercept") +
+    theme_classic()
+  ggsave(paste("figs/",name,"powerNegative.png",sep=''))
+}
+
 ###script
 # #test
 # N=50
@@ -247,7 +376,7 @@ randSim=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,between
 # 
 # Ns=c(1200)
 # numberOfTrialsVector=c(20)
-# intercepts=toLogOdds(0.9)
+# intercepts=toLogOdds(c(0.1,0.9))
 # reps=10
 # dataOfSims11110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=0)
 
@@ -256,55 +385,64 @@ randSim=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,between
 #52766
 set.seed(52766)
 #different combinations of participants and measurements per participant (Ns need to be multiple of numberOfTrialsVector*2)
-Ns=c(1200)
+Ns=c(1600) #use 1600 due to Brysbaert & Stevens despite of arbitrary effect sizes here to emphasize this value as minimal number of measurements
 numberOfTrialsVector=c(10,20,40)
 intercepts=toLogOdds(c(0.01,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.80,0.85,0.90,0.95,0.99))
 reps=100
 dataOfSims11110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=0)
 #larger random intercept
 dataOfSims11120=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=2,randomError=0)
+#no interactions
+dataOfSims11010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=1,randomError=0)
 #negative interactions
 dataOfSims11_110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=-1,randomIntercept=1,randomError=0)
+#effects of smaller effect size
+dataOfSims55010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=0.5,withinEffectSize=0.5,interactionEffectSize=0,randomIntercept=1,randomError=0)
+
 #increase N for larger errors
 Ns=c(2000)
-dataOfSims1111=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=1)
+dataOfSims11111=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=1)
 
+#generate some plots
+saveplots(dataOfSims11110, "11110")
+saveplots(dataOfSims11120, "11120")
+saveplots(dataOfSims11010, "11010")
+saveplots(dataOfSims11_110, "11-110")
+saveplots(dataOfSims55010, "55010")
 
-dataOfSims=dataOfSims1110
-#plot p-value separated by methods by intercept
-ggplot(dataOfSims,aes(x=toAcc(intercept),y=pValue,color=type,shape=as.factor(numberOfTrials))) +
+#show average of randomly generated datasets
+datasets11010=randDatasets(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=1,randomError=0)
+ggplot(datasets11010,aes(x=toAcc(intercept),y=logOdds,color=effects,shape=as.factor(numberOfTrials))) +
   stat_summary(na.rm=TRUE, fun=mean, geom="line") +
   stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
   stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
-  facet_wrap(~effects) +
-  labs(y="p value", x="intercept") +
+  labs(y="logOdds", x="intercept") +
   theme_classic()
-#plot effect size separated by  methods by intercept
-ggplot(dataOfSims,aes(x=toAcc(intercept),y=effectSize,color=type,shape=as.factor(numberOfTrials))) +
+ggplot(datasets11010,aes(x=toAcc(intercept),y=prob,color=effects,shape=as.factor(numberOfTrials))) +
   stat_summary(na.rm=TRUE, fun=mean, geom="line") +
   stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
   stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
-  facet_wrap(~effects) +
-  labs(y="p value", x="intercept") +
+  labs(y="prob", x="intercept") +
   theme_classic()
-#power
-library(plyr)
-dataOfSimsPower=ddply(dataOfSims,
-                      .(intercept,type,numberOfTrials,effects,N),
-                      summarize,
-                      power=sum(pValue<.05)/reps)
-ggplot(dataOfSimsPower,aes(x=toAcc(intercept),y=power,color=type,shape=as.factor(numberOfTrials))) +
+ggplot(datasets11010,aes(x=toAcc(intercept),y=correctResponses,color=effects,shape=as.factor(numberOfTrials))) +
   stat_summary(na.rm=TRUE, fun=mean, geom="line") +
   stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
   stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
-  facet_wrap(~effects) +
-  labs(y="power", x="intercept") +
+  labs(y="correctResponses", x="intercept") +
   theme_classic()
+ggplot(datasets11010,aes(x=toAcc(intercept),y=correctResponsesGuessing,color=effects,shape=as.factor(numberOfTrials))) +
+  stat_summary(na.rm=TRUE, fun=mean, geom="line") +
+  stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
+  stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
+  labs(y="correctResponsesGuessing", x="intercept") +
+  theme_classic()
+
+#specific plots
 #for specific effect and effect size
 effect="factor2"
 numberOfTrials=40
-dataOfSimsPowerSpecific=dataOfSimsPower[which(dataOfSimsPower$effects==effect & dataOfSimsPower$numberOfTrials==numberOfTrials),]
-ggplot(dataOfSimsPowerSpecific,aes(x=toAcc(intercept),y=power,color=type)) +
+dataOfSimsPowerSpecific=dataOfSimsSummarizedReps[which(dataOfSimsSummarizedReps$effects==effect & dataOfSimsSummarizedReps$numberOfTrials==numberOfTrials),]
+ggplot(dataOfSimsPowerSpecific,aes(x=toAcc(intercept),y=powerPositive,color=type)) +
   stat_summary(na.rm=TRUE, fun=mean, geom="line") +
   stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
   stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
