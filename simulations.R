@@ -327,7 +327,7 @@ saveplots=function(dataOfSims,name,maxEffectSize=5){
     stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
     stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
     facet_wrap(~effects) +
-    labs(y="effect size", x="intercept") + coord_cartesian(ylim(-maxEffectSize,maxEffectSize))  + 
+    labs(y="effect size", x="intercept") + coord_cartesian(ylim=c(-maxEffectSize,maxEffectSize))  + 
     theme_classic()
   ggsave(paste("figs/",name,"effectSize.png",sep=''))
   #power
