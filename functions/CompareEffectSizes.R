@@ -16,8 +16,8 @@
 
 #parameters
 chanceLevel=.5
-baseAcc=c(.51,.55,.6,.65,.7,.75,.8,.85,.89) #base value for accuracy score in [chanceLevel,1]
-effectSize=.1 #change in accuracy from base accuracy
+baseAcc=0.5+c(1:44)/100 #base value for accuracy score in [chanceLevel,1]
+effectSize=.05 #change in accuracy from base accuracy
 
 ###calculations (no interaction)
 ##normal distribution
@@ -50,13 +50,21 @@ logOddsTwoEffectsCorrected=logOddsOneEffectCorrected+effectSizeLogOddsCorrected
 accuracyOneEffectCorrected=addChanceLevel(toAcc(logOddsOneEffectCorrected),chanceLevel)
 accuracyTwoEffectsCorrected=addChanceLevel(toAcc(logOddsTwoEffectsCorrected),chanceLevel)
 
-
-#one effect (these should all be the same)
-print(accuracyOneEffect)
-print(accuracyOneEffectBinomial)
-print(accuracyOneEffectCorrected)
-
-#two effects
-print(accuracyTwoEffects)
-print(accuracyTwoEffectsBinomial)
-print(accuracyTwoEffectsCorrected)
+dataframe=data.frame(p=rep(baseAcc,3),
+                     type=rep(c("normal","binomial","corrected"),each=length(baseAcc)),
+                     value=c(accuracyTwoEffects,accuracyTwoEffectsBinomial,accuracyTwoEffectsCorrected))
+ggplot(dataframe,aes(x=p,y=value-p,color=type)) +
+  stat_summary(na.rm=TRUE, fun=mean, geom="line") +
+  stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
+  labs(y="sum of two additive effects", x="p") +
+  theme_classic()
+ggsave("figs/effectSizes.png",width=1920, height=1080,unit="px",dpi=200)
+# #one effect (these should all be the same)
+# print(accuracyOneEffect)
+# print(accuracyOneEffectBinomial)
+# print(accuracyOneEffectCorrected)
+# 
+# #two effects
+# print(accuracyTwoEffects)
+# print(accuracyTwoEffectsBinomial)
+# print(accuracyTwoEffectsCorrected)
