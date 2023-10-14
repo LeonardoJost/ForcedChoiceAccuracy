@@ -180,13 +180,19 @@ toAcc=function(logOdds){
 }
 
 #correct accuracy for chance level
-correctChanceLevel=function(acc,chanceLevel){
+correctChanceLevel=function(acc,chanceLevel=0.5){
   return((acc-chanceLevel)/(1-chanceLevel))
 }
 
 #add chance level to acc as skill level
-addChanceLevel=function(acc,chanceLevel){
+addChanceLevel=function(acc,chanceLevel=0.5){
   return(acc*(1-chanceLevel)+chanceLevel)
 }
 
+#correct for chance level in log odds
+correctChanceLevelLogOdds=function(logOdds,chanceLevel=0.5){
+  acc=toAcc(logOdds)
+  accCorrected=correctChanceLevel(acc,chanceLevel)
+  return(toLogOdds(accCorrected))
+}
 

@@ -80,7 +80,8 @@ getDataGlmer=function(testdata){
                anova(glmerModel,glmerModel2)$"Pr(>Chisq)"[2],
                anova(glmerModel,glmerModel3)$"Pr(>Chisq)"[2],
                fixef(glmerModel),
-               isSingular(glmerModel)))
+               isSingular(glmerModel),
+               confint(glmerModel,method="Wald")))
     },
     error=function(cond) {
       message("Error with glmerModel:")
@@ -106,7 +107,8 @@ getDataGlmerGuessing=function(testdata){
                anova(glmerModel,glmerModel2)$"Pr(>Chisq)"[2],
                anova(glmerModel,glmerModel3)$"Pr(>Chisq)"[2],
                fixef(glmerModel),
-               isSingular(glmerModel)))
+               isSingular(glmerModel),
+               confint(glmerModel,method="Wald")))
     },
     error=function(cond) {
       message("Error with glmerModel with adjustment:")
@@ -131,7 +133,8 @@ getDataLmer=function(testdata){
                anova(lmerModel,lmerModel2)$"Pr(>Chisq)"[2],
                anova(lmerModel,lmerModel3)$"Pr(>Chisq)"[2],
                fixef(lmerModel),
-               isSingular(lmerModel)))
+               isSingular(lmerModel),
+               confint(lmerModel,method="Wald")))
     },
     error=function(cond) {
       message("Error with lmerModel:")
@@ -362,18 +365,49 @@ saveplots=function(dataOfSims,name,maxEffectSize=5){
 
 ###script
 # #test
-# N=50
-# numberOfTrials=20
-# intercept=toLogOdds(0.01)
-# betweenEffectSize=1
-# withinEffectSize=1
-# interactionEffectSize=1
-# randomIntercept=1
-# randomError=0
-# testdata=generateData(N,numberOfTrials,intercept,betweenEffectSize,withinEffectSize,interactionEffectSize,randomIntercept,randomError)
-# glmerData=getDataGlmer(testdata)
-# glmerDataGuessing=getDataGlmerGuessing(testdata)
-# lmerData=getDataLmer(testdata)
+N=50
+numberOfTrials=20
+intercept=toLogOdds(0.5)
+betweenEffectSize=1
+withinEffectSize=1
+interactionEffectSize=1
+randomIntercept=1
+randomError=0
+testdata=generateData(N,numberOfTrials,intercept,betweenEffectSize,withinEffectSize,interactionEffectSize,randomIntercept,randomError)
+glmerData=getDataGlmer(testdata)
+glmerDataGuessing=getDataGlmerGuessing(testdata)
+lmerData=getDataLmer(testdata)
+glmerModel=glmer(correctResponses~factor1*factor2+(1|ids),
+                 family=binomial(),data=testdata,weights=weights,
+                 control = glmerControl(optimizer = "optimx",optCtrl = list(method = "bobyqa")))
+model.confint=confint(glmerModel)
+fixef(glmerModel)[1]
+interceptFixEf=fixef(glmerModel)[1]
+factor1FixEf=fixef(glmerModel)[2] 
+factor2FixEf=fixef(glmerModel)[3]
+interactionFixEf=fixef(glmerModel)[4]
+interceptLowerCi=model.confint[2]
+factor1LowerCi=model.confint[3]
+factor2LowerCi=model.confint[4]
+interactionLowerCi=model.confint[5]
+interceptUpperCi=model.confint[7]
+factor1UpperCi=model.confint[8]
+factor2UpperCi=model.confint[9]
+interactionUpperCi=model.confint[10]
+#corrected effect size for main effects, 0.5 due to scaling of original effects
+correctedIntercept=correctChanceLevelLogOdds(interceptFixEf)
+correctedFac1=correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf)-correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf)
+correctedFac2=correctChanceLevelLogOdds(interceptFixEf+0.5*factor2FixEf)-correctChanceLevelLogOdds(interceptFixEf-0.5*factor2FixEf)
+#mean over observations, alternative is mean over conditions/grand mean
+# correctedFac1grand=0.5*(correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf+0.5*factor2FixEf+0.5*0.5*interactionFixEf)-
+#   correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf-0.5*factor2FixEf+0.5*0.5*interactionFixEf)+
+#   correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf-0.5*factor2FixEf-0.5*0.5*interactionFixEf)-
+#   correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf+0.5*factor2FixEf-0.5*0.5*interactionFixEf))
+#interaction
+correctedFullInteraction=correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf+0.5*factor2FixEf+0.5*0.5*interactionFixEf)+
+  correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf-0.5*factor2FixEf+0.5*0.5*interactionFixEf)-
+  correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf-0.5*factor2FixEf-0.5*0.5*interactionFixEf)-
+  correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf+0.5*factor2FixEf-0.5*0.5*interactionFixEf)
 # 
 # Ns=c(1200)
 # numberOfTrialsVector=c(20)
@@ -387,32 +421,33 @@ saveplots=function(dataOfSims,name,maxEffectSize=5){
 set.seed(52766)
 #different combinations of participants and measurements per participant (Ns need to be multiple of numberOfTrialsVector*2)
 Ns=c(1600) #use 1600 due to Brysbaert & Stevens despite of arbitrary effect sizes here to emphasize this value as minimal number of measurements
-numberOfTrialsVector=c(10,20,40)
+numberOfTrialsVector=c(10,40)
 intercepts=toLogOdds(c(0.01,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.80,0.85,0.90,0.95,0.99))
 reps=100
 dataOfSims11110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=0)
 #larger random intercept
-dataOfSims11120=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=2,randomError=0)
+#dataOfSims11120=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=2,randomError=0)
 #no interactions
 dataOfSims11010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=1,randomError=0)
 #negative interactions
 dataOfSims11_110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=-1,randomIntercept=1,randomError=0)
-#effects of smaller effect size
-dataOfSims55010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=0.5,withinEffectSize=0.5,interactionEffectSize=0,randomIntercept=1,randomError=0)
 #effects of larger effect size
 dataOfSims22010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=2,withinEffectSize=2,interactionEffectSize=0,randomIntercept=1,randomError=0)
-
-#increase N for larger errors
-# Ns=c(2000)
-# dataOfSims11111=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=1)
+#add random error
+dataOfSims11055=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=0.5,randomError=0.5)
+#increase Ns for larger power
+Ns2=c(3200)
+dataOfSims110102=randSim(Ns2,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=1,randomError=0)
 
 #generate some plots
 saveplots(dataOfSims11110, "11110")
-saveplots(dataOfSims11120, "11120")
 saveplots(dataOfSims11010, "11010")
 saveplots(dataOfSims11_110, "11-110")
-saveplots(dataOfSims55010, "55010")
 saveplots(dataOfSims22010, "22010")
+saveplots(dataOfSims11055, "11055")
+saveplots(dataOfSims110102, "110102")
+
+#plot number of singular fits
 
 #comparison
 set.seed(527661)
@@ -433,9 +468,10 @@ dataOfSims55010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSiz
 #effects of larger effect size
 dataOfSims22010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=2,withinEffectSize=2,interactionEffectSize=0,randomIntercept=1,randomError=0)
 
-#increase N for larger errors
-# Ns=c(2000)
-# dataOfSims11111=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=1)
+#smaller random intercept
+dataOfSims11050=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=0.5,randomError=0)
+#add random error
+dataOfSims11055=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=0.5,randomError=0.5)
 
 #generate some plots
 saveplots(dataOfSims11110, "111102")
@@ -444,28 +480,32 @@ saveplots(dataOfSims11010, "110102")
 saveplots(dataOfSims11_110, "11-1102")
 saveplots(dataOfSims55010, "550102")
 saveplots(dataOfSims22010, "220102")
+saveplots(dataOfSims11050, "110502")
+saveplots(dataOfSims11055, "110552")
 
 #show average of randomly generated datasets
 datasets11010=randDatasets(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=1,randomError=0)
-ggplot(datasets11010,aes(x=toAcc(intercept),y=logOdds,color=effects,shape=as.factor(numberOfTrials))) +
+datasets22010=randDatasets(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=2,withinEffectSize=2,interactionEffectSize=0,randomIntercept=1,randomError=0)
+datasetToPlot=datasets11010
+ggplot(datasetToPlot,aes(x=toAcc(intercept),y=logOdds,color=effects,shape=as.factor(numberOfTrials))) +
   stat_summary(na.rm=TRUE, fun=mean, geom="line") +
   stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
   stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
   labs(y="logOdds", x="intercept") +
   theme_classic()
-ggplot(datasets11010,aes(x=toAcc(intercept),y=prob,color=effects,shape=as.factor(numberOfTrials))) +
+ggplot(datasetToPlot,aes(x=toAcc(intercept),y=prob,color=effects,shape=as.factor(numberOfTrials))) +
   stat_summary(na.rm=TRUE, fun=mean, geom="line") +
   stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
   stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
   labs(y="prob", x="intercept") +
   theme_classic()
-ggplot(datasets11010,aes(x=toAcc(intercept),y=correctResponses,color=effects,shape=as.factor(numberOfTrials))) +
+ggplot(datasetToPlot,aes(x=toAcc(intercept),y=correctResponses,color=effects,shape=as.factor(numberOfTrials))) +
   stat_summary(na.rm=TRUE, fun=mean, geom="line") +
   stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
   stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
   labs(y="correctResponses", x="intercept") +
   theme_classic()
-ggplot(datasets11010,aes(x=toAcc(intercept),y=correctResponsesGuessing,color=effects,shape=as.factor(numberOfTrials))) +
+ggplot(datasetToPlot,aes(x=toAcc(intercept),y=correctResponsesGuessing,color=effects,shape=as.factor(numberOfTrials))) +
   stat_summary(na.rm=TRUE, fun=mean, geom="line") +
   stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
   stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
@@ -474,12 +514,12 @@ ggplot(datasets11010,aes(x=toAcc(intercept),y=correctResponsesGuessing,color=eff
 
 #specific plots
 #for specific effect and effect size
-effect="factor2"
-numberOfTrials=40
-dataOfSimsPowerSpecific=dataOfSimsSummarizedReps[which(dataOfSimsSummarizedReps$effects==effect & dataOfSimsSummarizedReps$numberOfTrials==numberOfTrials),]
-ggplot(dataOfSimsPowerSpecific,aes(x=toAcc(intercept),y=powerPositive,color=type)) +
-  stat_summary(na.rm=TRUE, fun=mean, geom="line") +
-  stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
-  stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
-  labs(y="power", x="intercept") +
-  theme_classic()
+# effect="factor2"
+# numberOfTrials=40
+# dataOfSimsPowerSpecific=dataOfSimsSummarizedReps[which(dataOfSimsSummarizedReps$effects==effect & dataOfSimsSummarizedReps$numberOfTrials==numberOfTrials),]
+# ggplot(dataOfSimsPowerSpecific,aes(x=toAcc(intercept),y=powerPositive,color=type)) +
+#   stat_summary(na.rm=TRUE, fun=mean, geom="line") +
+#   stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
+#   stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
+#   labs(y="power", x="intercept") +
+#   theme_classic()
