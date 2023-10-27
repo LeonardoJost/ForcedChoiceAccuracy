@@ -152,16 +152,20 @@ getDataLmer=function(testdata){
 #reps - number of simulations
 randSim=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=0){
   numTrials=length(numberOfTrialsVector)
+  effectsVector=c("factor1","factor2","factor1:factor2")
+  numberOfEffects=length(effectsVector)
+  typesVector=c("normal","binomial","binomialGuessing","postHocBinomial")
+  numberOfTypes=length(typesVector)
   #generate data frame for saving data
-  dataOfSims=data.frame(rep=rep(1:reps,length(Ns)*numTrials,each=9), #3(effects)*3(type) values saved per repetition,
-                        intercept=rep(intercepts,each=9*reps,length(Ns)*length(numberOfTrialsVector)),
-                        numberOfTrials=rep(numberOfTrialsVector,each=9*reps*length(intercepts),length(Ns)),
-                        N=rep(Ns,each=9*reps*numTrials*length(intercepts)),
-                        effects=rep(c("factor1","factor2","factor1:factor2"),length(Ns)*numTrials*length(intercepts)*3*reps),
-                        type=rep(c("normal","binomial","binomialGuessing"),length(Ns)*numTrials*length(intercepts)*reps,each=3),
-                        pValue=rep(0,length(Ns)*9*numTrials*length(intercepts)*reps),
-                        effectSize=rep(0,length(Ns)*9*numTrials*length(intercepts)*reps),
-                        singularFit=rep(F,length(Ns)*9*numTrials*length(intercepts)*reps))
+  dataOfSims=data.frame(rep=rep(1:reps,length(Ns)*numTrials,each=numberOfEffects*numberOfTypes), #3(effects)*3(type) values saved per repetition,
+                        intercept=rep(intercepts,each=numberOfEffects*numberOfTypes*reps,length(Ns)*length(numberOfTrialsVector)),
+                        numberOfTrials=rep(numberOfTrialsVector,each=numberOfEffects*numberOfTypes*reps*length(intercepts),length(Ns)),
+                        N=rep(Ns,each=numberOfEffects*numberOfTypes*reps*numTrials*length(intercepts)),
+                        effects=rep(effectsVector,length(Ns)*numTrials*length(intercepts)*numberOfTypes*reps),
+                        type=rep(typesVector,length(Ns)*numTrials*length(intercepts)*reps,each=numberOfEffects),
+                        pValue=rep(0,length(Ns)*numberOfEffects*numberOfTypes*numTrials*length(intercepts)*reps),
+                        effectSize=rep(0,length(Ns)*numberOfEffects*numberOfTypes*numTrials*length(intercepts)*reps),
+                        singularFit=rep(F,length(Ns)*numberOfEffects*numberOfTypes*numTrials*length(intercepts)*reps))
   #loop over combinations of number of Trials and participants and intercepts
   for(intercept in intercepts){
     #output to get some sense of progress
@@ -190,11 +194,11 @@ randSim=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,between
             lmerData[3]
           #calculate log odds effect size for normal distribution
           dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
-            toLogOdds(lmerData[4]+lmerData[5])-toLogOdds(lmerData[4])    
+            setMinMax(toLogOdds(lmerData[4]+0.5*lmerData[5])-toLogOdds(lmerData[4]-0.5*lmerData[5]))
           dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor2")]=
-            toLogOdds(lmerData[4]+lmerData[6])-toLogOdds(lmerData[4])       
+            setMinMax(toLogOdds(lmerData[4]+0.5*lmerData[6])-toLogOdds(lmerData[4]-0.5*lmerData[6]))      
           dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
-            toLogOdds(lmerData[4]+lmerData[7])-toLogOdds(lmerData[4]) 
+            setMinMax(toLogOdds(lmerData[4]+0.5*lmerData[7])-toLogOdds(lmerData[4]-0.5*lmerData[7]))
           dataOfSims$singularFit[which(dataOfSims$rep==i & dataOfSims$type=="normal" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N)]=
             lmerData[8]
           #glmerData
@@ -227,6 +231,59 @@ randSim=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,between
             glmerDataGuessing[7]
           dataOfSims$singularFit[which(dataOfSims$rep==i & dataOfSims$type=="binomialGuessing" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N)]=
             glmerDataGuessing[8]
+          #post hoc binomial correction
+          #calculate values
+          interceptFixEf=glmerData[4]
+          factor1FixEf=glmerData[5] 
+          factor2FixEf=glmerData[6]
+          interactionFixEf=glmerData[7]
+          #interceptLowerCi=glmerData[10]
+          #factor1LowerCi=glmerData[11]
+          #factor2LowerCi=glmerData[12]
+          interactionLowerCi=glmerData[13]
+          #interceptUpperCi=glmerData[15]
+          #factor1UpperCi=glmerData[16]
+          #factor2UpperCi=glmerData[17]
+          interactionUpperCi=glmerData[18]
+          #corrected effect size for main effects, 0.5 due to scaling of original effects
+          correctedFac1=correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf)-correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf)
+          correctedFac2=correctChanceLevelLogOdds(interceptFixEf+0.5*factor2FixEf)-correctChanceLevelLogOdds(interceptFixEf-0.5*factor2FixEf)
+          #mean over observations, alternative is mean over conditions/grand mean
+          # correctedFac1grand=0.5*(correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf+0.5*factor2FixEf+0.5*0.5*interactionFixEf)-
+          #   correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf-0.5*factor2FixEf+0.5*0.5*interactionFixEf)+
+          #   correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf-0.5*factor2FixEf-0.5*0.5*interactionFixEf)-
+          #   correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf+0.5*factor2FixEf-0.5*0.5*interactionFixEf))
+          #interaction
+          correctedFullInteraction=correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf+0.5*factor2FixEf+0.5*0.5*interactionFixEf)+
+            correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf-0.5*factor2FixEf+0.5*0.5*interactionFixEf)-
+            correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf-0.5*factor2FixEf-0.5*0.5*interactionFixEf)-
+            correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf+0.5*factor2FixEf-0.5*0.5*interactionFixEf)
+          #confidence interval
+          correctedFullInteractionLowerCI=correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf+0.5*factor2FixEf+0.5*0.5*interactionLowerCi)+
+            correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf-0.5*factor2FixEf+0.5*0.5*interactionLowerCi)-
+            correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf-0.5*factor2FixEf-0.5*0.5*interactionLowerCi)-
+            correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf+0.5*factor2FixEf-0.5*0.5*interactionLowerCi)
+          correctedFullInteractionUpperCI=correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf+0.5*factor2FixEf+0.5*0.5*interactionUpperCi)+
+            correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf-0.5*factor2FixEf+0.5*0.5*interactionUpperCi)-
+            correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf-0.5*factor2FixEf-0.5*0.5*interactionUpperCi)-
+            correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf+0.5*factor2FixEf-0.5*0.5*interactionUpperCi)
+          #only calculate significance instead of approximated p-value
+          significanceInteraction=ifelse(sign(correctedFullInteractionLowerCI)==sign(correctedFullInteractionUpperCI),0,1)
+          #save values
+          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="postHocBinomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
+            glmerData[1]
+          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="postHocBinomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor2")]=
+            glmerData[2]
+          dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="postHocBinomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
+            significanceInteraction
+          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="postHocBinomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
+            setMinMax(correctedFac1)  
+          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="postHocBinomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor2")]=
+            setMinMax(correctedFac2)     
+          dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="postHocBinomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
+            setMinMax(correctedFullInteraction)
+          dataOfSims$singularFit[which(dataOfSims$rep==i & dataOfSims$type=="postHocBinomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N)]=
+            glmerData[8]
         }      
       }
     }
@@ -361,59 +418,37 @@ saveplots=function(dataOfSims,name,maxEffectSize=5){
     labs(y="power", x="intercept") +
     theme_classic()
   ggsave(paste("figs/",name,"powerNegative.png",sep=''))
+  #number of singular fits
+  ggplot(dataOfSimsSummarizedReps,aes(x=toAcc(intercept),y=singularFits,color=type,shape=as.factor(numberOfTrials))) +
+    stat_summary(na.rm=TRUE, fun=mean, geom="line") +
+    stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
+    stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
+    facet_wrap(~effects) +
+    labs(y="singular fits", x="intercept") +
+    theme_classic()
+  ggsave(paste("figs/",name,"singularFits.png",sep=''))
 }
 
 ###script
-# #test
-N=50
-numberOfTrials=20
-intercept=toLogOdds(0.5)
-betweenEffectSize=1
-withinEffectSize=1
-interactionEffectSize=1
-randomIntercept=1
-randomError=0
-testdata=generateData(N,numberOfTrials,intercept,betweenEffectSize,withinEffectSize,interactionEffectSize,randomIntercept,randomError)
-glmerData=getDataGlmer(testdata)
-glmerDataGuessing=getDataGlmerGuessing(testdata)
-lmerData=getDataLmer(testdata)
-glmerModel=glmer(correctResponses~factor1*factor2+(1|ids),
-                 family=binomial(),data=testdata,weights=weights,
-                 control = glmerControl(optimizer = "optimx",optCtrl = list(method = "bobyqa")))
-model.confint=confint(glmerModel)
-fixef(glmerModel)[1]
-interceptFixEf=fixef(glmerModel)[1]
-factor1FixEf=fixef(glmerModel)[2] 
-factor2FixEf=fixef(glmerModel)[3]
-interactionFixEf=fixef(glmerModel)[4]
-interceptLowerCi=model.confint[2]
-factor1LowerCi=model.confint[3]
-factor2LowerCi=model.confint[4]
-interactionLowerCi=model.confint[5]
-interceptUpperCi=model.confint[7]
-factor1UpperCi=model.confint[8]
-factor2UpperCi=model.confint[9]
-interactionUpperCi=model.confint[10]
-#corrected effect size for main effects, 0.5 due to scaling of original effects
-correctedIntercept=correctChanceLevelLogOdds(interceptFixEf)
-correctedFac1=correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf)-correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf)
-correctedFac2=correctChanceLevelLogOdds(interceptFixEf+0.5*factor2FixEf)-correctChanceLevelLogOdds(interceptFixEf-0.5*factor2FixEf)
-#mean over observations, alternative is mean over conditions/grand mean
-# correctedFac1grand=0.5*(correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf+0.5*factor2FixEf+0.5*0.5*interactionFixEf)-
-#   correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf-0.5*factor2FixEf+0.5*0.5*interactionFixEf)+
-#   correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf-0.5*factor2FixEf-0.5*0.5*interactionFixEf)-
-#   correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf+0.5*factor2FixEf-0.5*0.5*interactionFixEf))
-#interaction
-correctedFullInteraction=correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf+0.5*factor2FixEf+0.5*0.5*interactionFixEf)+
-  correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf-0.5*factor2FixEf+0.5*0.5*interactionFixEf)-
-  correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf-0.5*factor2FixEf-0.5*0.5*interactionFixEf)-
-  correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf+0.5*factor2FixEf-0.5*0.5*interactionFixEf)
+#test
 # 
-# Ns=c(1200)
+# N=1600
+# intercept=toLogOdds(0.1)
+# numberOfTrials=20
+# n=N/numberOfTrials/2
+# testdata=generateData(n,numberOfTrials,intercept,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=1,randomError=0)
+# glmerData=getDataGlmer(testdata)
+# glmerModel=glmer(correctResponses~factor1*factor2+(1|ids),
+#                  family=binomial(),data=testdata,weights=weights,
+#                  control = glmerControl(optimizer = "optimx",optCtrl = list(method = "bobyqa")))
+# glmerDataGuessing=getDataGlmerGuessing(testdata)
+# lmerData=getDataLmer(testdata)
+# 
+# Ns=c(1600)
 # numberOfTrialsVector=c(20)
 # intercepts=toLogOdds(c(0.1,0.9))
 # reps=10
-# dataOfSims11110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=0)
+# dataOfSims11010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=1,randomError=0)
 
 #generate random seed (this should be random enough)
 #sample(0:100000,1)
@@ -425,25 +460,23 @@ numberOfTrialsVector=c(10,40)
 intercepts=toLogOdds(c(0.01,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.80,0.85,0.90,0.95,0.99))
 reps=100
 dataOfSims11110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=0)
-#larger random intercept
-#dataOfSims11120=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=2,randomError=0)
-#no interactions
+#no interaction
 dataOfSims11010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=1,randomError=0)
-#negative interactions
+#negative interaction
 dataOfSims11_110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=-1,randomIntercept=1,randomError=0)
-#effects of larger effect size
-dataOfSims22010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=2,withinEffectSize=2,interactionEffectSize=0,randomIntercept=1,randomError=0)
 #add random error
 dataOfSims11055=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=0.5,randomError=0.5)
 #increase Ns for larger power
 Ns2=c(3200)
 dataOfSims110102=randSim(Ns2,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=1,randomError=0)
+#no random intercept -> leads to more singular fits, because estimated random intercept has no variance
+#dataOfSims110002=randSim(Ns2,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=0,randomError=0)
+
 
 #generate some plots
 saveplots(dataOfSims11110, "11110")
 saveplots(dataOfSims11010, "11010")
 saveplots(dataOfSims11_110, "11-110")
-saveplots(dataOfSims22010, "22010")
 saveplots(dataOfSims11055, "11055")
 saveplots(dataOfSims110102, "110102")
 

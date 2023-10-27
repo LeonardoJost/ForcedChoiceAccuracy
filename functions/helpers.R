@@ -196,3 +196,14 @@ correctChanceLevelLogOdds=function(logOdds,chanceLevel=0.5){
   return(toLogOdds(accCorrected))
 }
 
+#add chance level in log odds
+addChanceLevelLogOdds=function(logOdds,chanceLevel=0.5){
+  acc=toAcc(logOdds)
+  accCorrected=addChanceLevel(acc,chanceLevel)
+  return(toLogOdds(accCorrected))
+}
+
+#set minimum and maximum values for input x (mostly to avoid inf due to log odds conversion), values of 5 correspnd to <1% or >99%
+setMinMax=function(x,minValue=-5,maxValue=5){
+  return(min(max(x,minValue),maxValue))
+}

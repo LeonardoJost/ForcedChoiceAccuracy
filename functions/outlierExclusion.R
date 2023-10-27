@@ -22,21 +22,27 @@ library(ggplot2)
 #p - probability to solve trials
 #c - chance level
 #x - proportion of non-guessers
-calculateNewEffects=function(n,p,c,x){
-  Nsolvers=c(t((1-pbinom(n*c,n,p))%*%t(x))) #these depend on p (vector) -> convert matrix to vector
-  Nguessers=rep((1-pbinom(n*c,n,c))*(1-x),length(p))  #these do not depend on p (no vector) -> repeat to same length
+#e - exclusion level (typically chance level)
+calculateNewEffects=function(n,p,c,x,e=c){
+  #calculate the number of persons performing above chance level
+  Nsolvers=c(t((1-pbinom(n*e,n,p))%*%t(x))) #these depend on p (vector) -> convert matrix to vector
+  Nguessers=rep((1-pbinom(n*e,n,c))*(1-x),length(p))  #these do not depend on p (no vector) -> repeat to same length
   #calculate new values
-  N=Nsolvers+Nguessers
-  xn=Nsolvers/N
-  powerNew=pwr.t.test(n=round(1000*N),d=0.1*xn)
-  powerOriginal=pwr.t.test(n=1000,d=0.1*x)
-  powerProportion=powerNew$power/powerOriginal$power
+  Nnew=Nsolvers+Nguessers #new number of persons after exclusion
+  xn=Nsolvers/Nnew #new proportion of non-guessers
+  #calculate number of participants necessary for power of .8 in original sample
+  NOriginal=rep(0,length(x))
+  for(i in 1:length(x)){
+    NOriginal[i]=pwr.t.test(power=0.8,d=x[i],type="two.sample",alternative="two.sided")$n
+  }
+  #new power
+  powerNew=pwr.t.test(n=NOriginal*Nnew,d=xn,type="two.sample",alternative="two.sided")$power/0.8
   #data frame for saving (3 values for each p/x combination)
   dataframe=data.frame(numberOfTrials=n,
                        p=rep(p,3,each=length(x)),
                        proportionNonGuessers=as.factor(rep(x,3*length(p))),
-                       type=rep(c("N","x","power"),each=length(p)*length(x)),
-                       value=c(N,xn,powerProportion))
+                       type=rep(c("N","d","power"),each=length(p)*length(x)),
+                       value=c(Nnew,xn,powerNew))
   return(dataframe)
 }
 p=0.5+c(1:49)/100 #probability to solve tasks
@@ -45,7 +51,9 @@ x=c(0.8,0.95,1) #proportion of non-guessers
 dat10=calculateNewEffects(10,p,c,x)
 dat20=calculateNewEffects(20,p,c,x)
 dat40=calculateNewEffects(40,p,c,x)
-datFull=rbind(dat10,dat20,dat40)
+dat406=calculateNewEffects(40,p,c,x,0.6)
+dat406$numberOfTrials="40-0.6"
+datFull=rbind(dat10,dat20,dat40,dat406)
 
 
 ggplot(datFull,aes(x=p,y=value,color=type,shape=proportionNonGuessers)) +
@@ -53,6 +61,7 @@ ggplot(datFull,aes(x=p,y=value,color=type,shape=proportionNonGuessers)) +
   stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
   facet_wrap(~numberOfTrials) + 
   labs(y="proportion", x="p") +
+  #geom_hline(yintercept=0.8) +
   theme_classic()
-ggsave("figs/powerComparison.png",width=1920, height=1080,unit="px",dpi=200)
+ggsave("figs/powerComparison.png",width=1920, height=1080,unit="px",dpi=100)
 
