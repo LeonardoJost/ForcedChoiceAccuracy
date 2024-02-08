@@ -369,7 +369,7 @@ randDatasets=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,be
 
 #function to generate plots
 #maxEffectSize - cutoff for maximum effect size to plot
-saveplots=function(dataOfSims,name,maxEffectSize=5){
+saveplots=function(dataOfSims,name,maxEffectSize=2){
   #remove singular fits
   dataOfSimsNoSingularFits=dataOfSims[which(dataOfSims$singularFit==0),]
   #plot p-value separated by methods by intercept
@@ -379,7 +379,7 @@ saveplots=function(dataOfSims,name,maxEffectSize=5){
     stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
     facet_wrap(~effects) +
     labs(y="p value", x="intercept") +
-    theme_classic()
+    theme(legend.position = "none")+theme_classic()
   ggsave(paste("figs/",name,"pValue.png",sep=''))
   #plot effect size separated by  methods by intercept
   ggplot(dataOfSimsNoSingularFits,aes(x=toAcc(intercept),y=effectSize,color=type,shape=as.factor(numberOfTrials))) +
@@ -388,7 +388,7 @@ saveplots=function(dataOfSims,name,maxEffectSize=5){
     stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
     facet_wrap(~effects) +
     labs(y="effect size", x="intercept") + coord_cartesian(ylim=c(-maxEffectSize,maxEffectSize))  + 
-    theme_classic()
+    theme(legend.position = "none")+theme_classic()
   ggsave(paste("figs/",name,"effectSize.png",sep=''))
   #power
   library(plyr)
@@ -407,7 +407,7 @@ saveplots=function(dataOfSims,name,maxEffectSize=5){
     stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
     facet_wrap(~effects) +
     labs(y="power", x="intercept") +
-    theme_classic()
+    theme(legend.position = "none")+theme_classic()
   ggsave(paste("figs/",name,"powerPositive.png",sep=''))
   #power to detect effect in negative direction
   ggplot(dataOfSimsSummarizedReps,aes(x=toAcc(intercept),y=powerNegative,color=type,shape=as.factor(numberOfTrials))) +
@@ -416,7 +416,7 @@ saveplots=function(dataOfSims,name,maxEffectSize=5){
     stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
     facet_wrap(~effects) +
     labs(y="power", x="intercept") +
-    theme_classic()
+    theme(legend.position = "none")+theme_classic()
   ggsave(paste("figs/",name,"powerNegative.png",sep=''))
   #number of singular fits
   ggplot(dataOfSimsSummarizedReps,aes(x=toAcc(intercept),y=singularFits,color=type,shape=as.factor(numberOfTrials))) +
@@ -425,7 +425,7 @@ saveplots=function(dataOfSims,name,maxEffectSize=5){
     stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
     facet_wrap(~effects) +
     labs(y="singular fits", x="intercept") +
-    theme_classic()
+    theme(legend.position = "none")+theme_classic()
   ggsave(paste("figs/",name,"singularFits.png",sep=''))
 }
 
@@ -455,66 +455,71 @@ saveplots=function(dataOfSims,name,maxEffectSize=5){
 #52766
 set.seed(52766)
 #different combinations of participants and measurements per participant (Ns need to be multiple of numberOfTrialsVector*2)
-Ns=c(1600) #use 1600 due to Brysbaert & Stevens despite of arbitrary effect sizes here to emphasize this value as minimal number of measurements
+Ns=c(4160) #4160=40 trials*50 participants*2conditions> 1600 Brysbaert & Stevens (2018), 52 participants for within subjects (Brysbaert, 2019) (interaction would need more) despite of arbitrary effect sizes here to emphasize this value as minimal number of measurements
 numberOfTrialsVector=c(10,40)
 intercepts=toLogOdds(c(0.01,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.80,0.85,0.90,0.95,0.99))
-reps=100
+reps=1000
+#effect sizes of 1 and positive/zero/negative interaction, no random error (random variance is similar to fewer trials)
+#positive interaction
 dataOfSims11110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=0)
 #no interaction
 dataOfSims11010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=1,randomError=0)
 #negative interaction
 dataOfSims11_110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=-1,randomIntercept=1,randomError=0)
-#add random error
-dataOfSims11055=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=0.5,randomError=0.5)
-#increase Ns for larger power
-Ns2=c(3200)
-dataOfSims110102=randSim(Ns2,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=1,randomError=0)
-#no random intercept -> leads to more singular fits, because estimated random intercept has no variance
-#dataOfSims110002=randSim(Ns2,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=0,randomError=0)
-
 
 #generate some plots
 saveplots(dataOfSims11110, "11110")
 saveplots(dataOfSims11010, "11010")
 saveplots(dataOfSims11_110, "11-110")
-saveplots(dataOfSims11055, "11055")
-saveplots(dataOfSims110102, "110102")
 
-#plot number of singular fits
-
-#comparison
-set.seed(527661)
-#different combinations of participants and measurements per participant (Ns need to be multiple of numberOfTrialsVector*2)
-Ns=c(1600) #use 1600 due to Brysbaert & Stevens despite of arbitrary effect sizes here to emphasize this value as minimal number of measurements
-numberOfTrialsVector=c(10,20,40)
-intercepts=toLogOdds(c(0.01,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.80,0.85,0.90,0.95,0.99))
-reps=100
-dataOfSims11110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=0)
-#larger random intercept
-dataOfSims11120=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=2,randomError=0)
-#no interactions
-dataOfSims11010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=1,randomError=0)
-#negative interactions
-dataOfSims11_110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=-1,randomIntercept=1,randomError=0)
-#effects of smaller effect size
-dataOfSims55010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=0.5,withinEffectSize=0.5,interactionEffectSize=0,randomIntercept=1,randomError=0)
-#effects of larger effect size
-dataOfSims22010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=2,withinEffectSize=2,interactionEffectSize=0,randomIntercept=1,randomError=0)
-
-#smaller random intercept
-dataOfSims11050=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=0.5,randomError=0)
-#add random error
-dataOfSims11055=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=0.5,randomError=0.5)
+#effect sizes of 0.5 and positive/zero/negative interaction, no random error (random variance is similar to fewer trials)
+#positive interaction
+dataOfSims55550=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=.5,withinEffectSize=.5,interactionEffectSize=.5,randomIntercept=.5,randomError=0)
+#no interaction
+dataOfSims55050=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=.5,withinEffectSize=.5,interactionEffectSize=0,randomIntercept=.5,randomError=0)
+#negative interaction
+dataOfSims55_550=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=.5,withinEffectSize=.5,interactionEffectSize=-.5,randomIntercept=.5,randomError=0)
 
 #generate some plots
-saveplots(dataOfSims11110, "111102")
-saveplots(dataOfSims11120, "111202")
-saveplots(dataOfSims11010, "110102")
-saveplots(dataOfSims11_110, "11-1102")
-saveplots(dataOfSims55010, "550102")
-saveplots(dataOfSims22010, "220102")
-saveplots(dataOfSims11050, "110502")
-saveplots(dataOfSims11055, "110552")
+saveplots(dataOfSims55550, "55550")
+saveplots(dataOfSims55050, "55050")
+saveplots(dataOfSims55_550, "55-550")
+# 
+# #plot number of singular fits
+# 
+# #comparison
+# set.seed(527661)
+# #different combinations of participants and measurements per participant (Ns need to be multiple of numberOfTrialsVector*2)
+# Ns=c(1600) #use 1600 due to Brysbaert & Stevens despite of arbitrary effect sizes here to emphasize this value as minimal number of measurements
+# numberOfTrialsVector=c(10,20,40)
+# intercepts=toLogOdds(c(0.01,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.80,0.85,0.90,0.95,0.99))
+# reps=100
+# dataOfSims11110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=1,randomError=0)
+# #larger random intercept
+# dataOfSims11120=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=1,randomIntercept=2,randomError=0)
+# #no interactions
+# dataOfSims11010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=1,randomError=0)
+# #negative interactions
+# dataOfSims11_110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=-1,randomIntercept=1,randomError=0)
+# #effects of smaller effect size
+# dataOfSims55010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=0.5,withinEffectSize=0.5,interactionEffectSize=0,randomIntercept=1,randomError=0)
+# #effects of larger effect size
+# dataOfSims22010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=2,withinEffectSize=2,interactionEffectSize=0,randomIntercept=1,randomError=0)
+# 
+# #smaller random intercept
+# dataOfSims11050=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=0.5,randomError=0)
+# #add random error
+# dataOfSims11055=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=0.5,randomError=0.5)
+# 
+# #generate some plots
+# saveplots(dataOfSims11110, "111102")
+# saveplots(dataOfSims11120, "111202")
+# saveplots(dataOfSims11010, "110102")
+# saveplots(dataOfSims11_110, "11-1102")
+# saveplots(dataOfSims55010, "550102")
+# saveplots(dataOfSims22010, "220102")
+# saveplots(dataOfSims11050, "110502")
+# saveplots(dataOfSims11055, "110552")
 
 #show average of randomly generated datasets
 datasets11010=randDatasets(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=1,randomError=0)

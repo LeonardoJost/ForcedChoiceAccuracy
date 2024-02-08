@@ -181,7 +181,7 @@ toAcc=function(logOdds){
 
 #correct accuracy for chance level
 correctChanceLevel=function(acc,chanceLevel=0.5){
-  return((acc-chanceLevel)/(1-chanceLevel))
+  return(max((acc-chanceLevel)/(1-chanceLevel),0))
 }
 
 #add chance level to acc as skill level

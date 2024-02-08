@@ -23,35 +23,35 @@ library(ggplot2)
 #c - chance level
 #x - proportion of non-guessers
 #e - exclusion level (typically chance level)
-calculateNewEffects=function(n,p,c,x,e=c){
+calculateNewEffects=function(n,p,c,g,e=c){
   #calculate the number of persons performing above chance level
-  Nsolvers=c(t((1-pbinom(n*e,n,p))%*%t(x))) #these depend on p (vector) -> convert matrix to vector
-  Nguessers=rep((1-pbinom(n*e,n,c))*(1-x),length(p))  #these do not depend on p (no vector) -> repeat to same length
+  Nsolvers=c(t((1-pbinom(n*e,n,p))%*%t(g))) #these depend on p (vector) -> convert matrix to vector
+  Nguessers=rep((1-pbinom(n*e,n,c))*(1-g),length(p))  #these do not depend on p (no vector) -> repeat to same length
   #calculate new values
   Nnew=Nsolvers+Nguessers #new number of persons after exclusion
-  xn=Nsolvers/Nnew #new proportion of non-guessers
+  gn=Nsolvers/Nnew #new proportion of non-guessers
   #calculate number of participants necessary for power of .8 in original sample
-  NOriginal=rep(0,length(x))
-  for(i in 1:length(x)){
-    NOriginal[i]=pwr.t.test(power=0.8,d=x[i],type="two.sample",alternative="two.sided")$n
+  NOriginal=rep(0,length(g))
+  for(i in 1:length(g)){
+    NOriginal[i]=pwr.t.test(power=0.8,d=g[i],type="two.sample",alternative="two.sided")$n
   }
   #new power
-  powerNew=pwr.t.test(n=NOriginal*Nnew,d=xn,type="two.sample",alternative="two.sided")$power/0.8
+  powerNew=pwr.t.test(n=NOriginal*Nnew,d=gn,type="two.sample",alternative="two.sided")$power/0.8
   #data frame for saving (3 values for each p/x combination)
   dataframe=data.frame(numberOfTrials=n,
-                       p=rep(p,3,each=length(x)),
-                       proportionNonGuessers=as.factor(rep(x,3*length(p))),
-                       type=rep(c("N","d","power"),each=length(p)*length(x)),
-                       value=c(Nnew,xn,powerNew))
+                       p=rep(p,3,each=length(g)),
+                       proportionNonGuessers=as.factor(rep(g,3*length(p))),
+                       type=rep(c("N","d","power"),each=length(p)*length(g)),
+                       value=c(Nnew,gn,powerNew))
   return(dataframe)
 }
 p=0.5+c(1:49)/100 #probability to solve tasks
 c=0.5 #chance level
-x=c(0.8,0.95,1) #proportion of non-guessers
-dat10=calculateNewEffects(10,p,c,x)
-dat20=calculateNewEffects(20,p,c,x)
-dat40=calculateNewEffects(40,p,c,x)
-dat406=calculateNewEffects(40,p,c,x,0.6)
+g=c(0.8,0.95,1) #proportion of non-guessers
+dat10=calculateNewEffects(10,p,c,g)
+dat20=calculateNewEffects(20,p,c,g)
+dat40=calculateNewEffects(40,p,c,g)
+dat406=calculateNewEffects(40,p,c,g,0.6)
 dat406$numberOfTrials="40-0.6"
 datFull=rbind(dat10,dat20,dat40,dat406)
 
