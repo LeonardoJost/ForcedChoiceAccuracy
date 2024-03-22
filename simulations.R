@@ -268,7 +268,10 @@ randSim=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,between
             correctChanceLevelLogOdds(interceptFixEf+0.5*factor1FixEf-0.5*factor2FixEf-0.5*0.5*interactionUpperCi)-
             correctChanceLevelLogOdds(interceptFixEf-0.5*factor1FixEf+0.5*factor2FixEf-0.5*0.5*interactionUpperCi)
           #only calculate significance instead of approximated p-value
-          significanceInteraction=ifelse(sign(correctedFullInteractionLowerCI)==sign(correctedFullInteractionUpperCI),0,1)
+          #significanceInteraction=ifelse(sign(correctedFullInteractionLowerCI)==sign(correctedFullInteractionUpperCI),0,1)
+          #account better for NaNs due to both multiple Inf values (if effect is <0 and upperCi<0 or effect >0 and lowerCI>0)
+          significanceInteraction=ifelse((sign(correctedFullInteraction)<0 && sign(correctedFullInteractionUpperCI<0)) ||
+                                           (sign(correctedFullInteraction)>0 && sign(correctedFullInteractionLowerCI<0)),0,1)
           #save values
           dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="postHocBinomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
             glmerData[1]
@@ -277,11 +280,11 @@ randSim=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,between
           dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="postHocBinomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
             significanceInteraction
           dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="postHocBinomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
-            setMinMax(correctedFac1)  
+            correctedFac1
           dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="postHocBinomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor2")]=
-            setMinMax(correctedFac2)     
+            correctedFac2
           dataOfSims$effectSize[which(dataOfSims$rep==i & dataOfSims$type=="postHocBinomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1:factor2")]=
-            setMinMax(correctedFullInteraction)
+            correctedFullInteraction
           dataOfSims$singularFit[which(dataOfSims$rep==i & dataOfSims$type=="postHocBinomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N)]=
             glmerData[8]
         }      
@@ -372,6 +375,8 @@ randDatasets=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,be
 saveplots=function(dataOfSims,name,maxEffectSize=2){
   #remove singular fits
   dataOfSimsNoSingularFits=dataOfSims[which(dataOfSims$singularFit==0),]
+  #set infinite effect sizes to +-5 for plotting
+  dataOfSimsNoSingularFits$effectSize=setMinMax(dataOfSimsNoSingularFits$effectSize)
   #plot p-value separated by methods by intercept
   ggplot(dataOfSimsNoSingularFits,aes(x=toAcc(intercept),y=pValue,color=type,shape=as.factor(numberOfTrials))) +
     stat_summary(na.rm=TRUE, fun=mean, geom="line") +
@@ -392,14 +397,14 @@ saveplots=function(dataOfSims,name,maxEffectSize=2){
   ggsave(paste("figs/",name,"effectSize.png",sep=''))
   #power
   library(plyr)
-  dataOfSimsSummarizedReps=ddply(dataOfSims,
+  dataOfSimsSummarizedReps=ddply(dataOfSimsInteraction,
                                  .(intercept,type,numberOfTrials,effects,N),
                                  summarize,
-                                 reps=sum(singularFit==0),
-                                 singularFits=sum(singularFit==1),
-                                 powerPositive=sum(pValue<.05 & effectSize>0 & !is.na(effectSize) & singularFit==0)/reps,
-                                 powerNegative=sum(pValue<.05 & effectSize<0 & !is.na(effectSize) & singularFit==0)/reps,
-                                 nsEffect=sum(pValue>=.05 & singularFit==0)/reps)
+                                 reps=sum(singularFit==0 & !is.na(pValue)),
+                                 singularFits=sum(singularFit==1 | is.na(pValue)),
+                                 powerPositive=sum(!is.na(pValue) & pValue<.05 & effectSize>0 & !is.na(effectSize) & singularFit==0)/reps,
+                                 powerNegative=sum(!is.na(pValue) & pValue<.05 & effectSize<0 & !is.na(effectSize) & singularFit==0)/reps,
+                                 nsEffect=sum(!is.na(pValue) & pValue>=.05 & singularFit==0)/reps)
   #power to detect effect in positive direction
   ggplot(dataOfSimsSummarizedReps,aes(x=toAcc(intercept),y=powerPositive,color=type,shape=as.factor(numberOfTrials))) +
     stat_summary(na.rm=TRUE, fun=mean, geom="line") +
@@ -429,6 +434,50 @@ saveplots=function(dataOfSims,name,maxEffectSize=2){
   ggsave(paste("figs/",name,"singularFits.png",sep=''))
 }
 
+saveplotsInteraction=function(dataOfSims,name,minEffectSize=-1,maxEffectSize=1,posInteraction=0.25,negInteraction=0.25){
+  #only interaction
+  dataOfSimsInteraction=dataOfSims[which(dataOfSims$effects=="factor1:factor2"),]
+  #remove singular fits
+  dataOfSimsNoSingularFits=dataOfSimsInteraction[which(dataOfSimsInteraction$singularFit==0),]
+  #set infinite effect sizes to +-5 for plotting
+  dataOfSimsNoSingularFits$effectSize=setMinMax(dataOfSimsNoSingularFits$effectSize)
+  #plot effect size separated by  methods by intercept
+  ggplot(dataOfSimsNoSingularFits,aes(x=toAcc(intercept),y=effectSize,color=type,shape=as.factor(numberOfTrials))) +
+    stat_summary(na.rm=TRUE, fun=mean, geom="line") +
+    stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
+    stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
+    labs(y="effect size", x="intercept") + coord_cartesian(ylim=c(minEffectSize,maxEffectSize))  + 
+    theme_bw()+theme(legend.position = "none")
+  ggsave(paste("figs/",name,"effectSizeInteraction.png",sep=''))
+  #power
+  library(plyr)
+  dataOfSimsSummarizedReps=ddply(dataOfSimsInteraction,
+                                 .(intercept,type,numberOfTrials,effects,N),
+                                 summarize,
+                                 reps=sum(singularFit==0 & !is.na(pValue)),
+                                 singularFits=sum(singularFit==1 | is.na(pValue)),
+                                 powerPositive=sum(!is.na(pValue) & pValue<.05 & effectSize>0 & !is.na(effectSize) & singularFit==0)/reps,
+                                 powerNegative=sum(!is.na(pValue) & pValue<.05 & effectSize<0 & !is.na(effectSize) & singularFit==0)/reps,
+                                 nsEffect=sum(!is.na(pValue) & pValue>=.05 & singularFit==0)/reps)
+  #power to detect effect in positive direction
+  ggplot(dataOfSimsSummarizedReps,aes(x=toAcc(intercept),y=powerPositive,color=type,shape=as.factor(numberOfTrials))) +
+    stat_summary(na.rm=TRUE, fun=mean, geom="line") +
+    stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
+    stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
+    geom_hline(yintercept=0.025) + 
+    labs(y="power", x="intercept") + coord_cartesian(ylim=c(0,posInteraction))  + 
+    theme_bw()+theme(legend.position = "none")
+  ggsave(paste("figs/",name,"powerPositiveInteraction.png",sep=''))
+  #power to detect effect in negative direction
+  ggplot(dataOfSimsSummarizedReps,aes(x=toAcc(intercept),y=powerNegative,color=type,shape=as.factor(numberOfTrials))) +
+    stat_summary(na.rm=TRUE, fun=mean, geom="line") +
+    stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
+    stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
+    labs(y="power", x="intercept") + coord_cartesian(ylim=c(0,negInteraction))  + 
+    geom_hline(yintercept=0.025) + 
+    theme_bw()+theme(legend.position = "none")
+  ggsave(paste("figs/",name,"powerNegativeInteraction.png",sep=''))
+}
 ###script
 #test
 # 
@@ -455,7 +504,7 @@ saveplots=function(dataOfSims,name,maxEffectSize=2){
 #52766
 set.seed(52766)
 #different combinations of participants and measurements per participant (Ns need to be multiple of numberOfTrialsVector*2)
-Ns=c(4160) #4160=40 trials*50 participants*2conditions> 1600 Brysbaert & Stevens (2018), 52 participants for within subjects (Brysbaert, 2019) (interaction would need more) despite of arbitrary effect sizes here to emphasize this value as minimal number of measurements
+Ns=c(4160) #4160=40 trials*52 participants*2conditions> 1600 Brysbaert & Stevens (2018), 52 participants for within subjects (Brysbaert, 2019) (interaction would need more) despite of arbitrary effect sizes here to emphasize this value as minimal number of measurements
 numberOfTrialsVector=c(10,40)
 intercepts=toLogOdds(c(0.01,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.80,0.85,0.90,0.95,0.99))
 reps=1000
@@ -469,8 +518,11 @@ dataOfSims11_110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSi
 
 #generate some plots
 saveplots(dataOfSims11110, "11110")
+saveplotsInteraction(dataOfSims11110,"Interactions/11110",0,2,1)
 saveplots(dataOfSims11010, "11010")
+saveplotsInteraction(dataOfSims11010,"Interactions/11010")
 saveplots(dataOfSims11_110, "11-110")
+saveplotsInteraction(dataOfSims11_110,"Interactions/11-110",-2,0,0.25,1)
 
 #effect sizes of 0.5 and positive/zero/negative interaction, no random error (random variance is similar to fewer trials)
 #positive interaction
@@ -482,8 +534,11 @@ dataOfSims55_550=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSi
 
 #generate some plots
 saveplots(dataOfSims55550, "55550")
+saveplotsInteraction(dataOfSims55550,"Interactions/55550",0,1,1)
 saveplots(dataOfSims55050, "55050")
+saveplotsInteraction(dataOfSims55050,"Interactions/55050",-1,1)
 saveplots(dataOfSims55_550, "55-550")
+saveplotsInteraction(dataOfSims55_550,"Interactions/55-550",-1,0,0.25,1)
 # 
 # #plot number of singular fits
 # 
