@@ -58,7 +58,7 @@ generateData=function(n,numberOfTrials,intercept=0,betweenEffectSize=1,withinEff
   #set weights and normalize data to 0..1
   testdata$weights=numberOfTrials
   testdata$correctResponses=testdata$correctResponses/testdata$weights
-  testdata$weightsGuessing=numberOfTrials/2
+  testdata$weightsGuessing=numberOfTrials/2 #same effect as multiplying scores by 2
   testdata$correctResponsesGuessing=testdata$correctResponsesGuessing/testdata$weightsGuessing
   return(testdata)
 }
@@ -237,9 +237,9 @@ randSim=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,between
           #only calculate significance instead of approximated p-value
           #significanceInteraction=ifelse(sign(correctedFullInteractionLowerCI)==sign(correctedFullInteractionUpperCI),0,1)
           #account better for NaNs due to both multiple Inf values (if effect is <0 and upperCi<0 or effect >0 and lowerCI>0)
-          #only considering upperCI<0 or lowerCI>0 could also be sufficient
+          #only considering upperCI<0 or lowerCI>0 could also be sufficient, but the effect size needs a sign to detect the direction
           significanceInteraction=ifelse((sign(correctedFullInteraction)<0 && sign(correctedFullInteractionUpperCI<0)) ||
-                                           (sign(correctedFullInteraction)>0 && sign(correctedFullInteractionLowerCI<0)),0,1)
+                                           (sign(correctedFullInteraction)>0 && sign(correctedFullInteractionLowerCI>0)),0,1)
           #save values
           dataOfSims$pValue[which(dataOfSims$rep==i & dataOfSims$type=="postHocBinomial" & dataOfSims$intercept==intercept & dataOfSims$numberOfTrials==numberOfTrials & dataOfSims$N==N & dataOfSims$effects=="factor1")]=
             glmerData[1]
