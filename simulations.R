@@ -54,11 +54,12 @@ generateData=function(n,numberOfTrials,intercept=0,betweenEffectSize=1,withinEff
   #add chance level guessing to incorrectly answered trials
   testdata$correctResponses=testdata$correctResponses+rbinom(2*n,numberOfTrials-testdata$correctResponses,0.5)
   #correct for guessing but set negative values to 0
-  testdata$correctResponsesGuessing=ifelse(testdata$correctResponses>numberOfTrials/2,testdata$correctResponses-numberOfTrials/2,0)
+  testdata$correctResponsesGuessing=ifelse(testdata$correctResponses>numberOfTrials/2,testdata$correctResponses-numberOfTrials/2,0)*2
   #set weights and normalize data to 0..1
   testdata$weights=numberOfTrials
   testdata$correctResponses=testdata$correctResponses/testdata$weights
-  testdata$weightsGuessing=numberOfTrials/2 #same effect as multiplying scores by 2
+  #testdata$weightsGuessing=numberOfTrials/2 #same effect as multiplying scores by 2
+  testdata$weightsGuessing=numberOfTrials
   testdata$correctResponsesGuessing=testdata$correctResponsesGuessing/testdata$weightsGuessing
   return(testdata)
 }
@@ -498,6 +499,6 @@ saveplotsInteraction(dataOfSims55_550,"Interactions/55-550",-1,0,0.25,1)
 
 #add random error
 #no interaction
-dataOfSims11011=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=0,randomIntercept=1,randomError=1)
-saveplots(dataOfSims11011, "11011")
-saveplotsInteraction(dataOfSims11011,"Interactions/11011")
+dataOfSims55055=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=.5,withinEffectSize=.5,interactionEffectSize=0,randomIntercept=.5,randomError=.5)
+saveplots(dataOfSims55055, "55055")
+saveplotsInteraction(dataOfSims55055,"Interactions/55055")
