@@ -181,7 +181,7 @@ toAcc=function(logOdds){
 
 #correct accuracy for chance level
 correctChanceLevel=function(acc,chanceLevel=0.5){
-  return(max((acc-chanceLevel)/(1-chanceLevel),0))
+  return(pmax((acc-chanceLevel)/(1-chanceLevel),0))
 }
 
 #add chance level to acc as skill level
@@ -205,5 +205,48 @@ addChanceLevelLogOdds=function(logOdds,chanceLevel=0.5){
 
 #set minimum and maximum values for input x (mostly to avoid inf due to log odds conversion), values of 5 correspnd to <1% or >99%
 setMinMax=function(x,minValue=-5,maxValue=5){
-  return(min(max(x,minValue),maxValue))
+  return(pmin(pmax(x,minValue),maxValue))
+}
+
+#combine multiple images into one
+combineImages=function(imagesList,rows,columns,outputFile){
+  library(magick)
+  initImage=image_read(imagesList[1])
+  #each row contains columns images
+  imageRows=rep(initImage,columns)
+  imageColumns=rep(initImage,rows)
+  #combine images in rows and columns
+  counter=1
+  for(i in 1:rows){
+    for(j in 1:columns){
+      imageRows[j]=image_read(imagesList[counter])
+      counter=counter+1
+    }
+    #append horizontally
+    imageRow=image_append(imageRows)
+    imageColumns[i]=imageRow
+  }
+  #append vertically
+  image=image_append(imageColumns,stack=TRUE)
+  #save
+  image_write(image, path = outputFile)
+  gc()
+}
+
+#add legend centered at bottom
+addLegend=function(imageFile, legendFile,outputFile){
+  library(magick)
+  #read images
+  image=image_read(imageFile)
+  legend=image_read(legendFile)
+  
+  legend=image_trim(legend)
+  widthLegend=image_info(legend)$width
+  imageWidth=image_info(image)$width
+  dif=(imageWidth-widthLegend)/2
+  legend=image_border(legend,"white",dif)
+  image=image_append(c(image,legend),stack=T)
+  #save
+  image_write(image, path = outputFile)
+  gc()
 }

@@ -344,6 +344,11 @@ randDatasets=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,be
 #name - name for saving (string)
 #maxEffectSize - cutoff for maximum effect size to plot
 saveplots=function(dataOfSims,name,maxEffectSize=2){
+  #rename type for better legends
+  dataOfSims$type[which(dataOfSims$type=="postHocBinomial")]="Overall Correction"
+  dataOfSims$type[which(dataOfSims$type=="binomialGuessing")]="Individual Correction"
+  dataOfSims$type[which(dataOfSims$type=="binomial")]="Binomial"
+  dataOfSims$type[which(dataOfSims$type=="normal")]="Normal"
   #remove singular fits
   dataOfSimsNoSingularFits=dataOfSims[which(dataOfSims$singularFit==0),]
   #set infinite effect sizes to +-5 for plotting
@@ -354,8 +359,8 @@ saveplots=function(dataOfSims,name,maxEffectSize=2){
     stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
     stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
     facet_wrap(~effects) +
-    labs(y="p value", x="intercept") +
-    theme(legend.position = "none")+theme_classic()
+    labs(y="p value", x="intercept", color = "type of analysis", shape = "number of trials") +
+    theme_bw()+theme(legend.position = "none")
   ggsave(paste("figs/",name,"pValue.png",sep=''))
   #plot effect size separated by  methods by intercept
   ggplot(dataOfSimsNoSingularFits,aes(x=toAcc(intercept),y=effectSize,color=type,shape=as.factor(numberOfTrials))) +
@@ -363,12 +368,12 @@ saveplots=function(dataOfSims,name,maxEffectSize=2){
     stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
     stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
     facet_wrap(~effects) +
-    labs(y="effect size", x="intercept") + coord_cartesian(ylim=c(-maxEffectSize,maxEffectSize))  + 
-    theme(legend.position = "none")+theme_classic()
+    labs(y="effect size", x="intercept", color = "type of analysis", shape = "number of trials") + coord_cartesian(ylim=c(-maxEffectSize,maxEffectSize))  + 
+    theme_bw()+theme(legend.position = "none")
   ggsave(paste("figs/",name,"effectSize.png",sep=''))
   #power
   library(plyr)
-  dataOfSimsSummarizedReps=ddply(dataOfSimsInteraction,
+  dataOfSimsSummarizedReps=ddply(dataOfSims,
                                  .(intercept,type,numberOfTrials,effects,N),
                                  summarize,
                                  reps=sum(singularFit==0 & !is.na(pValue)),
@@ -380,41 +385,47 @@ saveplots=function(dataOfSims,name,maxEffectSize=2){
   ggplot(dataOfSimsSummarizedReps,aes(x=toAcc(intercept),y=powerPositive,color=type,shape=as.factor(numberOfTrials))) +
     stat_summary(na.rm=TRUE, fun=mean, geom="line") +
     stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
-    stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
+    #stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
     facet_wrap(~effects) +
-    labs(y="power", x="intercept") +
-    theme(legend.position = "none")+theme_classic()
+    labs(y="power", x="intercept", color = "type of analysis", shape = "number of trials") +
+    theme_bw()+theme(legend.position = "none")
   ggsave(paste("figs/",name,"powerPositive.png",sep=''))
   #power to detect effect in negative direction
   ggplot(dataOfSimsSummarizedReps,aes(x=toAcc(intercept),y=powerNegative,color=type,shape=as.factor(numberOfTrials))) +
     stat_summary(na.rm=TRUE, fun=mean, geom="line") +
     stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
-    stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
+    #stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
     facet_wrap(~effects) +
-    labs(y="power", x="intercept") +
-    theme(legend.position = "none")+theme_classic()
+    labs(y="power", x="intercept", color = "type of analysis", shape = "number of trials") +
+    theme_bw()+theme(legend.position = "none")
   ggsave(paste("figs/",name,"powerNegative.png",sep=''))
   #number of singular fits
   ggplot(dataOfSimsSummarizedReps,aes(x=toAcc(intercept),y=singularFits,color=type,shape=as.factor(numberOfTrials))) +
     stat_summary(na.rm=TRUE, fun=mean, geom="line") +
     stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
-    stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
-    facet_wrap(~effects) +
-    labs(y="singular fits", x="intercept") +
-    theme(legend.position = "none")+theme_classic()
-  ggsave(paste("figs/",name,"singularFits.png",sep=''))
+    #stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
+    #facet_wrap(~effects) +
+    labs(y="Singular Fits", x="Intercept", color = "Type of Analysis", shape = "Number of Trials") +
+    theme_bw()+theme(legend.position = "none")
+  #+theme(legend.position = c(0.5,0.7), legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
+  ggsave(paste("figs/",name,"singularFits.png",sep=''),width=1000, height=1000,unit="px",dpi=200)
 }
 
-#function to generate plots specific to interaction
+#function to generate plots specific to one effect
 #dataOfSims - dataset to plot
 #name - name for saving (string)
 #minEffectSize, maxEffectSize - cutoff for minimum/maximum effect size to plot
-#posInteraction, negInteraction - cutoff for maximum values of power to plot for detection of positive and negative interaction
-saveplotsInteraction=function(dataOfSims,name,minEffectSize=-1,maxEffectSize=1,posInteraction=0.25,negInteraction=0.25){
-  #only interaction
-  dataOfSimsInteraction=dataOfSims[which(dataOfSims$effects=="factor1:factor2"),]
+#maxPowerPos, maxPowerNeg - cutoff for maximum values of power to plot for detection of positive and negative effects
+savePlotsSpecific=function(dataOfSims,name,specificEffect="factor1:factor2",minEffectSize=-1,maxEffectSize=1,maxPowerPos=0.25,maxPowerNeg=0.25){
+  #rename type for better legends
+  dataOfSims$type[which(dataOfSims$type=="postHocBinomial")]="Overall Correction"
+  dataOfSims$type[which(dataOfSims$type=="binomialGuessing")]="Individual Correction"
+  dataOfSims$type[which(dataOfSims$type=="binomial")]="Binomial"
+  dataOfSims$type[which(dataOfSims$type=="normal")]="Normal"
+  #only specific effect
+  dataOfSimsSpecificEffect=dataOfSims[which(dataOfSims$effects==specificEffect),]
   #remove singular fits
-  dataOfSimsNoSingularFits=dataOfSimsInteraction[which(dataOfSimsInteraction$singularFit==0),]
+  dataOfSimsNoSingularFits=dataOfSimsSpecificEffect[which(dataOfSimsSpecificEffect$singularFit==0),]
   #set infinite effect sizes to +-5 for plotting
   dataOfSimsNoSingularFits$effectSize=setMinMax(dataOfSimsNoSingularFits$effectSize)
   #plot effect size separated by  methods by intercept
@@ -422,12 +433,13 @@ saveplotsInteraction=function(dataOfSims,name,minEffectSize=-1,maxEffectSize=1,p
     stat_summary(na.rm=TRUE, fun=mean, geom="line") +
     stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
     stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
-    labs(y="effect size", x="intercept") + coord_cartesian(ylim=c(minEffectSize,maxEffectSize))  + 
+    labs(y="Effect Size", x="Intercept", color = "Type of Analysis", shape = "Number of Trials") + coord_cartesian(ylim=c(minEffectSize,maxEffectSize))  + 
     theme_bw()+theme(legend.position = "none")
-  ggsave(paste("figs/",name,"effectSizeInteraction.png",sep=''))
+  #+theme(legend.position = c(0.5,0.8), legend.box="horizontal",legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
+  ggsave(paste("figs/",name,"effectSize.png",sep=''),width=1000, height=1000,unit="px",dpi=200)
   #power
   library(plyr)
-  dataOfSimsSummarizedReps=ddply(dataOfSimsInteraction,
+  dataOfSimsSummarizedReps=ddply(dataOfSimsSpecificEffect,
                                  .(intercept,type,numberOfTrials,effects,N),
                                  summarize,
                                  reps=sum(singularFit==0 & !is.na(pValue)),
@@ -439,21 +451,25 @@ saveplotsInteraction=function(dataOfSims,name,minEffectSize=-1,maxEffectSize=1,p
   ggplot(dataOfSimsSummarizedReps,aes(x=toAcc(intercept),y=powerPositive,color=type,shape=as.factor(numberOfTrials))) +
     stat_summary(na.rm=TRUE, fun=mean, geom="line") +
     stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
-    stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
+    #stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
     geom_hline(yintercept=0.025) + 
-    labs(y="power", x="intercept") + coord_cartesian(ylim=c(0,posInteraction))  + 
+    labs(y="Power", x="Intercept", color = "Type of Analysis", shape = "Number of Trials") + coord_cartesian(ylim=c(0,maxPowerPos))  + 
     theme_bw()+theme(legend.position = "none")
-  ggsave(paste("figs/",name,"powerPositiveInteraction.png",sep=''))
+  #+theme(legend.position = c(0.5,0.3), legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
+  ggsave(paste("figs/",name,"powerPositive.png",sep=''),width=1000, height=1000,unit="px",dpi=200)
   #power to detect effect in negative direction
   ggplot(dataOfSimsSummarizedReps,aes(x=toAcc(intercept),y=powerNegative,color=type,shape=as.factor(numberOfTrials))) +
     stat_summary(na.rm=TRUE, fun=mean, geom="line") +
     stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
-    stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
-    labs(y="power", x="intercept") + coord_cartesian(ylim=c(0,negInteraction))  + 
+    #stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
+    labs(y="Power", x="Intercept", color = "Type of Analysis", shape = "Number of Trials") + coord_cartesian(ylim=c(0,maxPowerNeg))  + 
     geom_hline(yintercept=0.025) + 
     theme_bw()+theme(legend.position = "none")
-  ggsave(paste("figs/",name,"powerNegativeInteraction.png",sep=''))
+  #+theme(legend.position = c(0.5,0.7), legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
+  #+theme(legend.position = c(0.8,0.8), legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
+  ggsave(paste("figs/",name,"powerNegative.png",sep=''),width=1000, height=1000,unit="px",dpi=200)
 }
+
 ###script
 
 #generate random seed (this should be random enough)
@@ -475,11 +491,17 @@ dataOfSims11_110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSi
 
 #generate some plots
 saveplots(dataOfSims11110, "11110")
-saveplotsInteraction(dataOfSims11110,"Interactions/11110",0,2,1)
+savePlotsSpecific(dataOfSims11110,"Interactions/11110","factor1:factor2",0,2,1)
+savePlotsSpecific(dataOfSims11110,"factor1/11110","factor1",0,2,1)
+savePlotsSpecific(dataOfSims11110,"factor2/11110","factor2",0,2,1)
 saveplots(dataOfSims11010, "11010")
-saveplotsInteraction(dataOfSims11010,"Interactions/11010")
+savePlotsSpecific(dataOfSims11010,"Interactions/11010","factor1:factor2")
+savePlotsSpecific(dataOfSims11010,"factor1/11010","factor1",0,2,1)
+savePlotsSpecific(dataOfSims11010,"factor2/11010","factor2",0,2,1)
 saveplots(dataOfSims11_110, "11-110")
-saveplotsInteraction(dataOfSims11_110,"Interactions/11-110",-2,0,0.25,1)
+savePlotsSpecific(dataOfSims11_110,"Interactions/11-110","factor1:factor2",-2,0,0.25,1)
+savePlotsSpecific(dataOfSims11_110,"factor1/11-110","factor1",0,2,1)
+savePlotsSpecific(dataOfSims11_110,"factor2/11-110","factor2",0,2,1)
 
 #effect sizes of 0.5 and positive/zero/negative interaction, no random error
 #positive interaction
@@ -491,14 +513,76 @@ dataOfSims55_550=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSi
 
 #generate some plots
 saveplots(dataOfSims55550, "55550")
-saveplotsInteraction(dataOfSims55550,"Interactions/55550",0,1,1)
+savePlotsSpecific(dataOfSims55550,"Interactions/55550","factor1:factor2",0,1,1)
+savePlotsSpecific(dataOfSims55550,"factor1/55550","factor1",0,1,1)
+savePlotsSpecific(dataOfSims55550,"factor2/55550","factor2",0,1,1)
 saveplots(dataOfSims55050, "55050")
-saveplotsInteraction(dataOfSims55050,"Interactions/55050",-1,1)
+savePlotsSpecific(dataOfSims55050,"Interactions/55050","factor1:factor2",-0.5,0.5)
+savePlotsSpecific(dataOfSims55050,"factor1/55050","factor1",0,1,1)
+savePlotsSpecific(dataOfSims55050,"factor2/55050","factor2",0,1,1)
 saveplots(dataOfSims55_550, "55-550")
-saveplotsInteraction(dataOfSims55_550,"Interactions/55-550",-1,0,0.25,1)
+savePlotsSpecific(dataOfSims55_550,"Interactions/55-550","factor1:factor2",-1,0,0.25,1)
+savePlotsSpecific(dataOfSims55_550,"factor1/55-550","factor1",0,1,1)
+savePlotsSpecific(dataOfSims55_550,"factor2/55-550","factor2",0,1,1)
 
 #add random error
 #no interaction
 dataOfSims55055=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=.5,withinEffectSize=.5,interactionEffectSize=0,randomIntercept=.5,randomError=.5)
 saveplots(dataOfSims55055, "55055")
-saveplotsInteraction(dataOfSims55055,"Interactions/55055")
+savePlotsSpecific(dataOfSims55055,"Interactions/55055")
+
+#combine images
+#singular fits
+combineImages(c("figs/11-110singularFits.png",
+                "figs/11010singularFits.png",
+                "figs/11110singularFits.png",
+                "figs/55-550singularFits.png",
+                "figs/55050singularFits.png",
+                "figs/55550singularFits.png"),2,3,"figs/singularFits.png")
+#effect size interaction
+combineImages(c("figs/Interactions/11-110effectSize.png",
+                "figs/Interactions/11010effectSize.png",
+                "figs/Interactions/11110effectSize.png",
+                "figs/Interactions/55-550effectSize.png",
+                "figs/Interactions/55050effectSize.png",
+                "figs/Interactions/55550effectSize.png"),2,3,"figs/effectSizeInteraction.png")
+#power negative interactions
+combineImages(c("figs/Interactions/11-110powerNegative.png",
+                "figs/Interactions/11010powerNegative.png",
+                "figs/Interactions/11110powerNegative.png",
+                "figs/Interactions/55-550powerNegative.png",
+                "figs/Interactions/55050powerNegative.png",
+                "figs/Interactions/55550powerNegative.png"),2,3,"figs/powerNegativeInteraction.png")
+#power positive interaction
+combineImages(c("figs/Interactions/11-110powerPositive.png",
+                "figs/Interactions/11010powerPositive.png",
+                "figs/Interactions/11110powerPositive.png",
+                "figs/Interactions/55-550powerPositive.png",
+                "figs/Interactions/55050powerPositive.png",
+                "figs/Interactions/55550powerPositive.png"),2,3,"figs/powerPositiveInteraction.png")
+#effect size main effects
+combineImages(c("figs/factor1/11-110effectSize.png",
+                "figs/factor1/11010effectSize.png",
+                "figs/factor1/11110effectSize.png",
+                "figs/factor1/55-550effectSize.png",
+                "figs/factor1/55050effectSize.png",
+                "figs/factor1/55550effectSize.png"),2,3,"figs/effectSizeFactor1.png")
+combineImages(c("figs/factor2/11-110effectSize.png",
+                "figs/factor2/11010effectSize.png",
+                "figs/factor2/11110effectSize.png",
+                "figs/factor2/55-550effectSize.png",
+                "figs/factor2/55050effectSize.png",
+                "figs/factor2/55550effectSize.png"),2,3,"figs/effectSizeFactor2.png")
+#power main effects
+combineImages(c("figs/factor1/11-110powerPositive.png",
+                "figs/factor1/11010powerPositive.png",
+                "figs/factor1/11110powerPositive.png",
+                "figs/factor1/55-550powerPositive.png",
+                "figs/factor1/55050powerPositive.png",
+                "figs/factor1/55550powerPositive.png"),2,3,"figs/powerPositiveFactor1.png")
+combineImages(c("figs/factor2/11-110powerPositive.png",
+                "figs/factor2/11010powerPositive.png",
+                "figs/factor2/11110powerPositive.png",
+                "figs/factor2/55-550powerPositive.png",
+                "figs/factor2/55050powerPositive.png",
+                "figs/factor2/55550powerPositive.png"),2,3,"figs/powerPositiveFactor2.png")

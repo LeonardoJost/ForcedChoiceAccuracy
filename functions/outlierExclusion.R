@@ -60,8 +60,8 @@ ggplot(datFull,aes(x=p,y=value,color=type,shape=proportionNonGuessers)) +
   stat_summary(na.rm=TRUE, fun=mean, geom="line") +
   stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
   facet_wrap(~numberOfTrials) + 
-  labs(y="proportion", x="p") +
+  labs(y="Proportion", x="p", shape="Proportion of Non-guessers", color="Type of Measure") +
   #geom_hline(yintercept=0.8) +
-  theme_classic()
-ggsave("figs/powerComparison.png",width=1920, height=1080,unit="px",dpi=100)
+  theme_bw()+theme(legend.position = c(0.8,0.65), legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
+ggsave("figs/powerComparison.png",width=2000, height=2000,unit="px",dpi=200)
 

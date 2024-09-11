@@ -51,14 +51,14 @@ accuracyOneEffectCorrected=addChanceLevel(toAcc(logOddsOneEffectCorrected),chanc
 accuracyTwoEffectsCorrected=addChanceLevel(toAcc(logOddsTwoEffectsCorrected),chanceLevel)
 
 dataframe=data.frame(p=rep(baseAcc,3),
-                     type=rep(c("normal","binomial","corrected"),each=length(baseAcc)),
+                     type=rep(c("Normal","Binomial","Corrected"),each=length(baseAcc)),
                      value=c(accuracyTwoEffects,accuracyTwoEffectsBinomial,accuracyTwoEffectsCorrected))
 ggplot(dataframe,aes(x=p,y=value-p,color=type)) +
   stat_summary(na.rm=TRUE, fun=mean, geom="line") +
   stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
-  labs(y="sum of two additive effects", x="p") +
-  theme_classic()
-ggsave("figs/effectSizes.png",width=1920, height=1080,unit="px",dpi=200)
+  labs(y="Sum of Two Additive Effects", x="p",color="Type") +
+  theme_bw()+theme(legend.position = c(0.8,0.8), legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
+ggsave("figs/effectSizes.png",width=2000, height=2000,unit="px",dpi=200)
 # #one effect (these should all be the same)
 # print(accuracyOneEffect)
 # print(accuracyOneEffectBinomial)
