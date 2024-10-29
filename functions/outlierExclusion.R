@@ -1,5 +1,5 @@
 ### Effects of outlier exclusion due to accuracy on participant numbers and effect size
-#     Copyright (C) 2023  Leonardo Jost
+#     Copyright (C) 2024  Leonardo Jost
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

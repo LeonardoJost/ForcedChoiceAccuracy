@@ -1,5 +1,5 @@
 ### Comparison of normal and binomial distributions for accuracy in forced choice tasks
-#     Copyright (C) 2023  Leonardo Jost
+#     Copyright (C) 2024  Leonardo Jost
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -84,7 +84,6 @@ getDataGlmer=function(testdata){
 }
 #same for guessing adjustment
 getDataGlmerGuessing=function(testdata){
-  #testdata=testdata[which(testdata$correctResponsesGuessing>=0),] #exclude negative scores due to correcting for guessing
   glmerModel=glmer(correctResponsesGuessing~factor1*factor2+(1|ids),
                    family=binomial(),data=testdata,weights=weightsGuessing,
                    control = glmerControl(optimizer = "optimx",optCtrl = list(method = "bobyqa")))
@@ -238,7 +237,7 @@ randSim=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,between
           #only calculate significance instead of approximated p-value
           #significanceInteraction=ifelse(sign(correctedFullInteractionLowerCI)==sign(correctedFullInteractionUpperCI),0,1)
           #account better for NaNs due to both multiple Inf values (if effect is <0 and upperCi<0 or effect >0 and lowerCI>0)
-          #only considering upperCI<0 or lowerCI>0 could also be sufficient, but the effect size needs a sign to detect the direction
+          #only considering upperCI<0 or lowerCI>0 could also be sufficient, but the effect size needs a sign to detect the direction anyway
           significanceInteraction=ifelse((sign(correctedFullInteraction)<0 && sign(correctedFullInteractionUpperCI<0)) ||
                                            (sign(correctedFullInteraction)>0 && sign(correctedFullInteractionLowerCI>0)),0,1)
           #save values
