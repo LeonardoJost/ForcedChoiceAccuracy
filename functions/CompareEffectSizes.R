@@ -58,7 +58,7 @@ ggplot(dataframe,aes(x=p,y=value-p,color=type)) +
   stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
   labs(y="Sum of Two Additive Effects", x="p",color="Type") +
   theme_bw()+theme(legend.position = c(0.8,0.8), legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
-ggsave("figs/effectSizes.png",width=2000, height=2000,unit="px",dpi=200)
+ggsave("figs/fig2effectSizes.png",width=2000, height=2000,unit="px",dpi=200)
 # #one effect (these should all be the same)
 # print(accuracyOneEffect)
 # print(accuracyOneEffectBinomial)

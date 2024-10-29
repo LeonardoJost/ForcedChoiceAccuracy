@@ -342,7 +342,13 @@ randDatasets=function(Ns,numberOfTrialsVector=c(20),intercepts=c(0),reps=1000,be
 #dataOfSims - dataset to plot
 #name - name for saving (string)
 #maxEffectSize - cutoff for maximum effect size to plot
-saveplots=function(dataOfSims,name,maxEffectSize=2){
+saveplots=function(dataOfSims,name,maxEffectSize=2,thisTheme=0,thisWidth=1500,thisHeight=1500,thisDpi=400){
+  #theme for singular fits
+  if(thisTheme==0){
+    themeSingular=theme(legend.position = "none")
+  } else {
+    themeSingular=theme(legend.position = c(0.5,0.6), legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
+  }
   #rename type for better legends
   dataOfSims$type[which(dataOfSims$type=="postHocBinomial")]="Overall Correction"
   dataOfSims$type[which(dataOfSims$type=="binomialGuessing")]="Individual Correction"
@@ -405,9 +411,9 @@ saveplots=function(dataOfSims,name,maxEffectSize=2){
     #stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
     #facet_wrap(~effects) +
     labs(y="Singular Fits", x="Intercept", color = "Type of Analysis", shape = "Number of Trials") +
-    theme_bw()+theme(legend.position = "none")
+    theme_bw()+themeSingular
   #+theme(legend.position = c(0.5,0.7), legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
-  ggsave(paste("figs/",name,"singularFits.png",sep=''),width=1000, height=1000,unit="px",dpi=200)
+  ggsave(paste("figs/",name,"singularFits.png",sep=''),width=thisWidth, height=thisHeight,unit="px",dpi=thisDpi)
 }
 
 #function to generate plots specific to one effect
@@ -415,7 +421,25 @@ saveplots=function(dataOfSims,name,maxEffectSize=2){
 #name - name for saving (string)
 #minEffectSize, maxEffectSize - cutoff for minimum/maximum effect size to plot
 #maxPowerPos, maxPowerNeg - cutoff for maximum values of power to plot for detection of positive and negative effects
-savePlotsSpecific=function(dataOfSims,name,specificEffect="factor1:factor2",minEffectSize=-1,maxEffectSize=1,maxPowerPos=0.25,maxPowerNeg=0.25){
+savePlotsSpecific=function(dataOfSims,name,specificEffect="factor1:factor2",minEffectSize=-1,maxEffectSize=1,maxPowerPos=0.25,maxPowerNeg=0.25,thisTheme=0,thisWidth=1500,thisHeight=1500,thisDpi=400){
+  #legend position
+  if(thisTheme==0){
+    themeEffect=theme(legend.position = "none")
+    themePowerPos=theme(legend.position = "none")
+    themePowerNeg=theme(legend.position = "none")
+  } else if (thisTheme==1) {
+    themeEffect=theme(legend.position = c(0.5,0.8), legend.box="horizontal",legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
+    themePowerPos=theme(legend.position = c(0.5,0.4), legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
+    themePowerNeg=theme(legend.position = c(0.5,0.6), legend.box="horizontal",legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
+  } else if (thisTheme==2) {
+    themeEffect=theme(legend.position = c(0.5,0.8), legend.box="horizontal",legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
+    themePowerPos=theme(legend.position = "none")
+    themePowerNeg=theme(legend.position = c(0.5,0.6), legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
+  } else {
+    themeEffect=theme(legend.position = "none")
+    themePowerPos=theme(legend.position = c(0.5,0.6), legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
+    themePowerNeg=theme(legend.position = "none")
+  }
   #rename type for better legends
   dataOfSims$type[which(dataOfSims$type=="postHocBinomial")]="Overall Correction"
   dataOfSims$type[which(dataOfSims$type=="binomialGuessing")]="Individual Correction"
@@ -433,9 +457,9 @@ savePlotsSpecific=function(dataOfSims,name,specificEffect="factor1:factor2",minE
     stat_summary(na.rm=TRUE, fun=mean, geom="point", size=2) +
     stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
     labs(y="Effect Size", x="Intercept", color = "Type of Analysis", shape = "Number of Trials") + coord_cartesian(ylim=c(minEffectSize,maxEffectSize))  + 
-    theme_bw()+theme(legend.position = "none")
+    theme_bw()+themeEffect
   #+theme(legend.position = c(0.5,0.8), legend.box="horizontal",legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
-  ggsave(paste("figs/",name,"effectSize.png",sep=''),width=1000, height=1000,unit="px",dpi=200)
+  ggsave(paste("figs/",name,"effectSize.png",sep=''),width=thisWidth, height=thisHeight,unit="px",dpi=thisDpi)
   #power
   library(plyr)
   dataOfSimsSummarizedReps=ddply(dataOfSimsSpecificEffect,
@@ -453,9 +477,9 @@ savePlotsSpecific=function(dataOfSims,name,specificEffect="factor1:factor2",minE
     #stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
     geom_hline(yintercept=0.025) + 
     labs(y="Power", x="Intercept", color = "Type of Analysis", shape = "Number of Trials") + coord_cartesian(ylim=c(0,maxPowerPos))  + 
-    theme_bw()+theme(legend.position = "none")
+    theme_bw()+themePowerPos
   #+theme(legend.position = c(0.5,0.3), legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
-  ggsave(paste("figs/",name,"powerPositive.png",sep=''),width=1000, height=1000,unit="px",dpi=200)
+  ggsave(paste("figs/",name,"powerPositive.png",sep=''),width=thisWidth, height=thisHeight,unit="px",dpi=thisDpi)
   #power to detect effect in negative direction
   ggplot(dataOfSimsSummarizedReps,aes(x=toAcc(intercept),y=powerNegative,color=type,shape=as.factor(numberOfTrials))) +
     stat_summary(na.rm=TRUE, fun=mean, geom="line") +
@@ -463,10 +487,10 @@ savePlotsSpecific=function(dataOfSims,name,specificEffect="factor1:factor2",minE
     #stat_summary(fun.data=mean_se,geom="errorbar",position = "dodge",aes(linetype=NULL)) +
     labs(y="Power", x="Intercept", color = "Type of Analysis", shape = "Number of Trials") + coord_cartesian(ylim=c(0,maxPowerNeg))  + 
     geom_hline(yintercept=0.025) + 
-    theme_bw()+theme(legend.position = "none")
+    theme_bw()+themePowerNeg
   #+theme(legend.position = c(0.5,0.7), legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
   #+theme(legend.position = c(0.8,0.8), legend.background = element_rect(fill="white",linewidth=0.5,linetype="solid",color="black"))
-  ggsave(paste("figs/",name,"powerNegative.png",sep=''),width=1000, height=1000,unit="px",dpi=200)
+  ggsave(paste("figs/",name,"powerNegative.png",sep=''),width=thisWidth, height=thisHeight,unit="px",dpi=thisDpi)
 }
 
 ###script
@@ -489,16 +513,16 @@ dataOfSims11010=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSiz
 dataOfSims11_110=randSim(Ns,numberOfTrialsVector,intercepts,reps,betweenEffectSize=1,withinEffectSize=1,interactionEffectSize=-1,randomIntercept=1,randomError=0)
 
 #generate some plots
-saveplots(dataOfSims11110, "11110")
-savePlotsSpecific(dataOfSims11110,"Interactions/11110","factor1:factor2",0,2,1)
-savePlotsSpecific(dataOfSims11110,"factor1/11110","factor1",0,2,1)
-savePlotsSpecific(dataOfSims11110,"factor2/11110","factor2",0,2,1)
+saveplots(dataOfSims11110, "11110",thisTheme=1)
+savePlotsSpecific(dataOfSims11110,"Interactions/11110","factor1:factor2",0,2,1,thisTheme=2)
+savePlotsSpecific(dataOfSims11110,"factor1/11110","factor1",0,2,1,thisTheme=1)
+savePlotsSpecific(dataOfSims11110,"factor2/11110","factor2",0,2,1,thisTheme=1)
 saveplots(dataOfSims11010, "11010")
 savePlotsSpecific(dataOfSims11010,"Interactions/11010","factor1:factor2")
 savePlotsSpecific(dataOfSims11010,"factor1/11010","factor1",0,2,1)
 savePlotsSpecific(dataOfSims11010,"factor2/11010","factor2",0,2,1)
 saveplots(dataOfSims11_110, "11-110")
-savePlotsSpecific(dataOfSims11_110,"Interactions/11-110","factor1:factor2",-2,0,0.25,1)
+savePlotsSpecific(dataOfSims11_110,"Interactions/11-110","factor1:factor2",-2,0,0.25,1,thisTheme=3)
 savePlotsSpecific(dataOfSims11_110,"factor1/11-110","factor1",0,2,1)
 savePlotsSpecific(dataOfSims11_110,"factor2/11-110","factor2",0,2,1)
 
@@ -537,51 +561,51 @@ combineImages(c("figs/11-110singularFits.png",
                 "figs/11110singularFits.png",
                 "figs/55-550singularFits.png",
                 "figs/55050singularFits.png",
-                "figs/55550singularFits.png"),2,3,"figs/singularFits.png")
+                "figs/55550singularFits.png"),2,3,"figs/fig3singularFits.png")
 #effect size interaction
 combineImages(c("figs/Interactions/11-110effectSize.png",
                 "figs/Interactions/11010effectSize.png",
                 "figs/Interactions/11110effectSize.png",
                 "figs/Interactions/55-550effectSize.png",
                 "figs/Interactions/55050effectSize.png",
-                "figs/Interactions/55550effectSize.png"),2,3,"figs/effectSizeInteraction.png")
+                "figs/Interactions/55550effectSize.png"),2,3,"figs/fig8effectSizeInteraction.png")
 #power negative interactions
 combineImages(c("figs/Interactions/11-110powerNegative.png",
                 "figs/Interactions/11010powerNegative.png",
                 "figs/Interactions/11110powerNegative.png",
                 "figs/Interactions/55-550powerNegative.png",
                 "figs/Interactions/55050powerNegative.png",
-                "figs/Interactions/55550powerNegative.png"),2,3,"figs/powerNegativeInteraction.png")
+                "figs/Interactions/55550powerNegative.png"),2,3,"figs/fig9powerNegativeInteraction.png")
 #power positive interaction
 combineImages(c("figs/Interactions/11-110powerPositive.png",
                 "figs/Interactions/11010powerPositive.png",
                 "figs/Interactions/11110powerPositive.png",
                 "figs/Interactions/55-550powerPositive.png",
                 "figs/Interactions/55050powerPositive.png",
-                "figs/Interactions/55550powerPositive.png"),2,3,"figs/powerPositiveInteraction.png")
+                "figs/Interactions/55550powerPositive.png"),2,3,"figs/fig10powerPositiveInteraction.png")
 #effect size main effects
 combineImages(c("figs/factor1/11-110effectSize.png",
                 "figs/factor1/11010effectSize.png",
                 "figs/factor1/11110effectSize.png",
                 "figs/factor1/55-550effectSize.png",
                 "figs/factor1/55050effectSize.png",
-                "figs/factor1/55550effectSize.png"),2,3,"figs/effectSizeFactor1.png")
+                "figs/factor1/55550effectSize.png"),2,3,"figs/fig4effectSizeFactor1.png")
 combineImages(c("figs/factor2/11-110effectSize.png",
                 "figs/factor2/11010effectSize.png",
                 "figs/factor2/11110effectSize.png",
                 "figs/factor2/55-550effectSize.png",
                 "figs/factor2/55050effectSize.png",
-                "figs/factor2/55550effectSize.png"),2,3,"figs/effectSizeFactor2.png")
+                "figs/factor2/55550effectSize.png"),2,3,"figs/fig5effectSizeFactor2.png")
 #power main effects
 combineImages(c("figs/factor1/11-110powerPositive.png",
                 "figs/factor1/11010powerPositive.png",
                 "figs/factor1/11110powerPositive.png",
                 "figs/factor1/55-550powerPositive.png",
                 "figs/factor1/55050powerPositive.png",
-                "figs/factor1/55550powerPositive.png"),2,3,"figs/powerPositiveFactor1.png")
+                "figs/factor1/55550powerPositive.png"),2,3,"figs/fig6powerPositiveFactor1.png")
 combineImages(c("figs/factor2/11-110powerPositive.png",
                 "figs/factor2/11010powerPositive.png",
                 "figs/factor2/11110powerPositive.png",
                 "figs/factor2/55-550powerPositive.png",
                 "figs/factor2/55050powerPositive.png",
-                "figs/factor2/55550powerPositive.png"),2,3,"figs/powerPositiveFactor2.png")
+                "figs/factor2/55550powerPositive.png"),2,3,"figs/fig7powerPositiveFactor2.png")
