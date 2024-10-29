@@ -87,7 +87,7 @@ stringRemoveNum=function(vec,trim){
   return(vec)
 }
 
-#calculate mean and sd (for numeric) or mode (for nonumeric) of vector
+#calculate mean and sd (for numeric) or mode (for nonnumeric) of vector
 meanMode=function(vec,narm=TRUE,digitsFormat=4) {
   if(is.factor(vec)){
     vec=levels(vec)[vec]
@@ -100,13 +100,13 @@ meanMode=function(vec,narm=TRUE,digitsFormat=4) {
   else
     return(modesString(vec))
 }
-#return mode (most occuring element), in case of conflict, return first occuring
+#return mode (most occurring element), in case of conflict, return first occurring
 mode = function(vec) {
   uniques = unique(vec)
   return(uniques[which.max(tabulate(match(vec, uniques)))])
 }
 
-#return all elements and number of occurences
+#return all elements and number of occurrences
 modes = function(vec) {
   #unlist in case of character arrays marked by []
   if(any(grepl("\\[|\\]",vec))){
@@ -155,7 +155,7 @@ getHandedness=function(verbose,dat,startIndex, numberOfCriteria) {
   return(dat) 
 }
 
-#clean questionaire Data
+#clean questionnaire Data
 cleanData=function(dat,toFirstChars,toNums,cleanWhiteSpaces) {
   for(toFirstChar in toFirstChars){
     dat[,toFirstChar]=substr(toChar(dat[,toFirstChar]),1,1)
@@ -203,7 +203,7 @@ addChanceLevelLogOdds=function(logOdds,chanceLevel=0.5){
   return(toLogOdds(accCorrected))
 }
 
-#set minimum and maximum values for input x (mostly to avoid inf due to log odds conversion), values of 5 correspnd to <1% or >99%
+#set minimum and maximum values for input x (mostly to avoid inf due to log odds conversion), values of 5 correspond to <1% or >99%
 setMinMax=function(x,minValue=-5,maxValue=5){
   return(pmin(pmax(x,minValue),maxValue))
 }
